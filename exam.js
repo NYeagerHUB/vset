@@ -347,12 +347,13 @@ async function saveSetToFirebase(setObj, onProgress) {
   onProgress && onProgress(0, total, '💾 Lưu lên Firestore...');
   await _db.collection('sets').doc(setId).set(meta);
 
-  // Lưu từng câu hỏi vào subcollection (batch 400)
+  // Lưu từng câu hỏi vào subcollection (batch 400) — thêm field order để giữ thứ tự
   const BATCH = 400;
   for (let i = 0; i < questions.length; i += BATCH) {
     const batch = _db.batch();
-    questions.slice(i, i + BATCH).forEach(q => {
-      batch.set(_db.collection('sets').doc(setId).collection('questions').doc(q.id), q);
+    questions.slice(i, i + BATCH).forEach((q, batchIdx) => {
+      const qWithOrder = { ...q, _order: i + batchIdx };
+      batch.set(_db.collection('sets').doc(setId).collection('questions').doc(q.id), qWithOrder);
     });
     await batch.commit();
     onProgress && onProgress(
@@ -399,7 +400,11 @@ async function fetchSetFull(setId) {
   const metaDoc = await _db.collection('sets').doc(setId).get();
   if (!metaDoc.exists) throw new Error('Bộ đề không tồn tại');
   const qSnap = await _db.collection('sets').doc(setId).collection('questions').get();
-  const fullSet = { ...metaDoc.data(), questions: qSnap.docs.map(d => d.data()) };
+  // Sort theo _order để đảm bảo thứ tự gốc
+  const questions = qSnap.docs
+    .map(d => d.data())
+    .sort((a, b) => (a._order ?? 999) - (b._order ?? 999));
+  const fullSet = { ...metaDoc.data(), questions };
   localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: fullSet }));
   return fullSet;
 }
@@ -456,7 +461,12 @@ async function ensureSetQuestions(setId) {
 async function _initFirebaseSync(forceRefresh = false) {
   setFbStatus('uploading', '⏳ Kết nối Firebase...');
   try {
-    if (forceRefresh) _invalidateSetsListCache();
+    if (forceRefresh) {
+      _invalidateSetsListCache();
+      // Xóa cache tất cả sets
+      Object.keys(localStorage).filter(k => k.startsWith('vsat_fb_cache_'))
+        .forEach(k => localStorage.removeItem(k));
+    }
     const ok = await syncSetsFromFirebase();
     if (ok) {
       setFbStatus('ok', `☁️ ${sets.length} đề`);
