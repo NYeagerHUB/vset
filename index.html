@@ -405,6 +405,39 @@
 </div>
 
 <!-- ═══════════════════════════════════════
+     SET QUESTION EDITOR MODAL
+═══════════════════════════════════════ -->
+<div id="set-qedit-modal" class="modal-overlay hidden">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3 id="set-qedit-title">✏️ Sửa câu hỏi</h3>
+      <button class="modal-x-close" id="set-qedit-close">✕</button>
+    </div>
+    <div class="modal-body" id="set-qedit-body" style="max-height:72vh;overflow-y:auto;padding:1rem 1.3rem"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="set-qedit-cancel">Huỷ</button>
+      <button class="modal-confirm" id="set-qedit-save" style="background:var(--success)">💾 Lưu câu hỏi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SET QUESTIONS LIST MODAL
+═══════════════════════════════════════ -->
+<div id="set-qlist-modal" class="modal-overlay hidden">
+  <div class="modal-box modal-wide" style="max-width:860px">
+    <div class="modal-header">
+      <h3 id="set-qlist-title">📋 Câu hỏi trong đề</h3>
+      <button class="modal-x-close" id="set-qlist-close">✕</button>
+    </div>
+    <div class="modal-body" id="set-qlist-body" style="max-height:75vh;overflow-y:auto;padding:.8rem 1rem"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="set-qlist-cancel">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
      SET NAME MODAL (đặt tên bộ đề)
 ═══════════════════════════════════════ -->
 <div id="set-name-modal" class="modal-overlay hidden">

@@ -539,6 +539,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bank-edit-cancel').addEventListener('click', closeBankEdit);
   document.getElementById('bank-edit-save').addEventListener('click', saveBankEdit);
 
+  // Set question editor modals
+  document.getElementById('set-qlist-close').addEventListener('click', closeSetQList);
+  document.getElementById('set-qlist-cancel').addEventListener('click', closeSetQList);
+  document.getElementById('set-qedit-close').addEventListener('click', closeSetQEdit);
+  document.getElementById('set-qedit-cancel').addEventListener('click', closeSetQEdit);
+  document.getElementById('set-qedit-save').addEventListener('click', saveSetQEdit);
+
   // Login
   document.getElementById('login-btn').addEventListener('click', handleLogin);
   document.getElementById('google-login-btn').addEventListener('click', googleLogin);
@@ -1422,6 +1429,7 @@ function renderSets() {
       <div class="set-card-header">
         <div class="set-card-name">${escH(s.name)}</div>
         <div class="set-card-actions">
+          <button class="bc-btn" onclick="openSetQList('${s.id}')" title="Xem & sửa câu hỏi">📋</button>
           <button class="bc-btn" onclick="renameSet('${s.id}')" title="Đổi tên">✏️</button>
           <button class="bc-btn" onclick="exportSet('${s.id}')" title="Xuất JSON">⬇️</button>
           <button class="bc-btn" onclick="addSetToBank('${s.id}')" title="Thêm vào ngân hàng">📥</button>
@@ -1445,6 +1453,223 @@ function renderSets() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ══════════════════════════════════════════
+//  SET QUESTION EDITOR
+// ══════════════════════════════════════════
+let _setQEditSetId  = null;
+let _setQEditQIdx   = -1;
+
+// Mở danh sách câu hỏi của 1 bộ đề
+async function openSetQList(setId) {
+  const s = sets.find(x => x.id === setId);
+  if (!s) return;
+
+  // Đảm bảo có questions
+  let qs = s.questions;
+  if (!qs || !qs.length) {
+    showToast('⏳ Đang tải câu hỏi...'); 
+    qs = await ensureSetQuestions(setId);
+  }
+  if (!qs || !qs.length) { showToast('⚠️ Không có câu hỏi', true); return; }
+
+  document.getElementById('set-qlist-title').textContent = `📋 ${escH(s.name)} — ${qs.length} câu`;
+
+  const rm = typeof renderMathHTML === 'function' ? renderMathHTML : escH;
+  document.getElementById('set-qlist-body').innerHTML = qs.map((q, i) => {
+    const typeLabel = { truefalse:'Đ/S', mcq:'TN', matching:'Ghép', short:'TLN' }[q.type] || q.type;
+    const preview = q.question ? q.question.slice(0, 120) + (q.question.length > 120 ? '…' : '') : '';
+    return `<div class="sqlist-item">
+      <div class="sqlist-header">
+        <span class="sqlist-num">Câu ${i+1}</span>
+        <span class="bank-card-type ${q.type}" style="font-size:.68rem">${typeLabel}</span>
+        <div class="sqlist-q">${rm(preview)}</div>
+        <button class="bc-btn sqlist-edit-btn" onclick="openSetQEdit('${setId}', ${i})">✏️ Sửa</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('set-qlist-modal').classList.remove('hidden');
+  // Re-render KaTeX
+  if (window.katex) setTimeout(rerenderPendingMath, 50);
+}
+
+function closeSetQList() {
+  document.getElementById('set-qlist-modal').classList.add('hidden');
+}
+
+// Mở editor cho 1 câu hỏi cụ thể
+function openSetQEdit(setId, qIdx) {
+  const s = sets.find(x => x.id === setId);
+  if (!s || !s.questions) return;
+  const q = s.questions[qIdx];
+  if (!q) return;
+
+  _setQEditSetId = setId;
+  _setQEditQIdx  = qIdx;
+
+  document.getElementById('set-qedit-title').textContent = `✏️ Sửa câu ${qIdx+1} [${typeFull(q.type)}]`;
+
+  // Dùng lại logic của openBankEdit
+  let html = `<div class="bedit-group">
+    <label class="bedit-label">Câu hỏi</label>
+    <textarea class="bedit-textarea" id="sqedit-question" rows="4">${escH(q.question)}</textarea>
+  </div>`;
+
+  if (q.type === 'mcq') {
+    html += (q.options || []).map((opt, oi) => `<div class="bedit-group">
+      <label class="bedit-label">Phương án ${ALPHA[oi]}</label>
+      <input class="bedit-input" id="sqedit-opt-${oi}" value="${escH(opt)}"/>
+    </div>`).join('');
+    html += `<div class="bedit-group"><label class="bedit-label">✅ Đáp án đúng</label>
+      <select class="bedit-select" id="sqedit-answer">
+        <option value="">– Chưa có –</option>
+        ${(q.options||[]).map((_, oi) => `<option value="${oi}" ${q.answer===oi?'selected':''}>${ALPHA[oi]}</option>`).join('')}
+      </select></div>`;
+  } else if (q.type === 'truefalse') {
+    html += (q.statements || []).map((s, si) => `
+      <div class="bedit-group">
+        <label class="bedit-label">Mệnh đề ${si+1}</label>
+        <input class="bedit-input" id="sqedit-stmt-${si}" value="${escH(s)}"/>
+      </div>
+      <div class="bedit-group">
+        <label class="bedit-label">✅ Đáp án mệnh đề ${si+1}</label>
+        <select class="bedit-select" id="sqedit-ans-${si}">
+          <option value="">– Chưa có –</option>
+          <option value="D" ${q.answers?.[si]==='D'?'selected':''}>Đúng</option>
+          <option value="S" ${q.answers?.[si]==='S'?'selected':''}>Sai</option>
+        </select>
+      </div>`).join('');
+  } else if (q.type === 'short') {
+    html += `<div class="bedit-group"><label class="bedit-label">✅ Đáp án</label>
+      <input class="bedit-input" id="sqedit-answer" value="${escH(q.answer || '')}"/></div>`;
+  } else if (q.type === 'matching') {
+    html += `<div class="bedit-group"><label class="bedit-label">Cột trái</label>
+      <textarea class="bedit-textarea" id="sqedit-left">${(q.left||[]).map(escH).join('\n')}</textarea></div>`;
+    html += `<div class="bedit-group"><label class="bedit-label">Cột phải</label>
+      <textarea class="bedit-textarea" id="sqedit-right">${(q.right||[]).map(escH).join('\n')}</textarea></div>`;
+    html += `<div class="bedit-group"><label class="bedit-label">✅ Đáp án (A,B,C,D)</label>
+      <input class="bedit-input" id="sqedit-answer" value="${
+        Array.isArray(q.answers) ? q.answers.map(v => v!==null&&v!==undefined?ALPHA[Number(v)]:'–').join(',') : ''
+      }"/></div>`;
+  }
+
+  // Ảnh
+  const imgPreview = q.image
+    ? `<div class="bedit-img-preview-wrap">
+         <img src="${q.image}" class="bedit-img-preview" alt="Hình vẽ"/>
+         <button type="button" class="bedit-img-del" onclick="clearSetQEditImage()">✕ Xóa ảnh</button>
+       </div>` : '';
+  html += `<div class="bedit-group">
+    <label class="bedit-label">🖼️ Hình vẽ / Đồ thị</label>
+    ${imgPreview}
+    <label class="bedit-img-upload-btn">
+      📷 ${q.image ? 'Thay ảnh' : 'Thêm ảnh'}
+      <input type="file" accept="image/*" style="display:none" onchange="handleSetQEditImageUpload(event)"/>
+    </label>
+  </div>`;
+
+  document.getElementById('set-qedit-body').innerHTML = html;
+  document.getElementById('set-qedit-modal').classList.remove('hidden');
+}
+
+function closeSetQEdit() {
+  document.getElementById('set-qedit-modal').classList.add('hidden');
+  _setQEditSetId = null; _setQEditQIdx = -1;
+}
+
+function handleSetQEditImageUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const s = sets.find(x => x.id === _setQEditSetId);
+    if (!s || !s.questions) return;
+    s.questions[_setQEditQIdx]._pendingImage = ev.target.result;
+    // Update preview
+    const wrap = document.querySelector('#set-qedit-body .bedit-img-preview-wrap');
+    const btn  = document.querySelector('#set-qedit-body .bedit-img-upload-btn');
+    if (wrap) wrap.querySelector('img').src = ev.target.result;
+    else {
+      const newWrap = document.createElement('div');
+      newWrap.className = 'bedit-img-preview-wrap';
+      newWrap.innerHTML = `<img src="${ev.target.result}" class="bedit-img-preview"/>
+        <button type="button" class="bedit-img-del" onclick="clearSetQEditImage()">✕ Xóa ảnh</button>`;
+      btn.parentNode.insertBefore(newWrap, btn);
+    }
+    if (btn) btn.textContent = '📷 Thay ảnh';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearSetQEditImage() {
+  const s = sets.find(x => x.id === _setQEditSetId);
+  if (s && s.questions) {
+    s.questions[_setQEditQIdx]._pendingImage = null;
+    s.questions[_setQEditQIdx].image = null;
+  }
+  const wrap = document.querySelector('#set-qedit-body .bedit-img-preview-wrap');
+  if (wrap) wrap.remove();
+}
+
+async function saveSetQEdit() {
+  if (!_setQEditSetId || _setQEditQIdx < 0) return;
+  const s = sets.find(x => x.id === _setQEditSetId);
+  if (!s || !s.questions) return;
+
+  const q = { ...s.questions[_setQEditQIdx] };
+  q.question = document.getElementById('sqedit-question').value.trim();
+
+  // Xử lý ảnh pending
+  if (q._pendingImage !== undefined) {
+    q.image = q._pendingImage;
+    delete q._pendingImage;
+  }
+
+  if (q.type === 'mcq') {
+    q.options = (q.options||[]).map((_, oi) => document.getElementById(`sqedit-opt-${oi}`)?.value || '');
+    const av = document.getElementById('sqedit-answer')?.value;
+    q.answer = av !== '' && av !== undefined ? Number(av) : null;
+  } else if (q.type === 'truefalse') {
+    q.statements = (q.statements||[]).map((_, si) => document.getElementById(`sqedit-stmt-${si}`)?.value || '');
+    q.answers    = q.statements.map((_, si) => document.getElementById(`sqedit-ans-${si}`)?.value || null);
+  } else if (q.type === 'short') {
+    q.answer = document.getElementById('sqedit-answer')?.value.trim() || null;
+  } else if (q.type === 'matching') {
+    q.left  = document.getElementById('sqedit-left')?.value.split('\n').map(x=>x.trim()).filter(Boolean) || [];
+    q.right = document.getElementById('sqedit-right')?.value.split('\n').map(x=>x.trim()).filter(Boolean) || [];
+    const raw = document.getElementById('sqedit-answer')?.value.split(',').map(x=>x.trim().toUpperCase()) || [];
+    q.answers = raw.map(x => { const i = ALPHA.indexOf(x); return i>=0?i:null; });
+  }
+
+  // Lưu local
+  s.questions[_setQEditQIdx] = q;
+  saveSets();
+  closeSetQEdit();
+
+  // Sync lên Firebase
+  if (initFirebase()) {
+    try {
+      setFbStatus('uploading', '💾 Đang lưu...');
+      await _db.collection('sets').doc(_setQEditSetId)
+        .collection('questions').doc(q.id).set(q);
+      // Xóa cache để fetch lại
+      localStorage.removeItem('vsat_fb_cache_' + _setQEditSetId);
+      setFbStatus('ok', '☁️ Đã lưu');
+      showToast('✅ Đã lưu câu hỏi lên Firebase');
+    } catch(e) {
+      setFbStatus('error', '⚠️ Lưu Firebase thất bại');
+      showToast('⚠️ Lưu Firebase thất bại: ' + e.message, true);
+    }
+  } else {
+    showToast('✅ Đã lưu câu hỏi (local)');
+  }
+
+  // Refresh list nếu đang mở
+  const listModal = document.getElementById('set-qlist-modal');
+  if (!listModal.classList.contains('hidden')) {
+    openSetQList(_setQEditSetId);
+  }
 }
 
 function handleSetsImport(e) {

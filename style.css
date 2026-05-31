@@ -1420,3 +1420,42 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
   padding: .1rem .3rem;
 }
 .google-logout-btn:hover { text-decoration: underline; }
+
+
+/* ══════════════════════════════════════
+   SET QUESTION LIST MODAL
+══════════════════════════════════════ */
+.sqlist-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .55rem .8rem;
+  margin-bottom: .4rem;
+  background: var(--content-bg);
+  transition: border-color .15s;
+}
+.sqlist-item:hover { border-color: var(--bi-border); }
+.sqlist-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.sqlist-num {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  min-width: 44px;
+  flex-shrink: 0;
+}
+.sqlist-q {
+  flex: 1;
+  font-size: .83rem;
+  color: var(--text);
+  line-height: 1.4;
+  min-width: 0;
+}
+.sqlist-edit-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+}
