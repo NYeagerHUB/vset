@@ -1,0 +1,27 @@
+# Python
+*.py
+__pycache__/
+*.pyc
+
+# Test files
+test_*.js
+test-*.js
+test_*.py
+run_parser_cscript.js
+
+# PDF source files (không cần đưa lên)
+*.pdf
+
+# Text output
+extracted_answers*.txt
+
+# JSON data files (tuỳ chọn — bỏ comment nếu không muốn public)
+# *.json
+
+# Editor
+.vscode/
+.qodo/
+
+# OS
+.DS_Store
+Thumbs.db
