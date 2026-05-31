@@ -214,26 +214,199 @@ function _invalidateSetsListCache() {
   localStorage.removeItem('vsat_fb_sets_list');
 }
 
-async function _initFirebaseSync(forceRefresh = false) {
-  setFbStatus('uploading', '⏳ Đang kết nối Firebase...');
+// ── Firebase init (SDK loaded via <script> in HTML head) ──
+const FB_CONFIG = {
+  apiKey:            "AIzaSyDE1CrLybblFqy3k6Yec0wmsIvW3JfW51Y",
+  authDomain:        "vset-75fb5.firebaseapp.com",
+  projectId:         "vset-75fb5",
+  storageBucket:     "vset-75fb5.firebasestorage.app",
+  messagingSenderId: "807067750847",
+  appId:             "1:807067750847:web:ae37b9d1f271d37e7e510a"
+};
+let _db = null, _storage = null, _fbReady = false;
+
+function initFirebase() {
+  if (_fbReady) return true;
   try {
-    if (typeof syncSetsFromFirebase !== 'function') {
-      // firebase.js chưa load, thử lại sau 1s
-      setTimeout(() => _initFirebaseSync(forceRefresh), 1000);
-      return;
-    }
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    _db      = firebase.firestore();
+    _storage = firebase.storage();
+    _fbReady = true;
+    return true;
+  } catch(e) {
+    console.error('[Firebase] init failed:', e);
+    return false;
+  }
+}
+
+// ── Nén ảnh base64 → JPEG ──
+function compressImage(base64, quality = 0.72, maxW = 900) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64);
+    img.src = base64;
+  });
+}
+
+// ── Upload ảnh lên Storage ──
+async function uploadImageFB(base64, setId, qId) {
+  const compressed = await compressImage(base64);
+  const parts  = compressed.split(',');
+  const binary = atob(parts[1]);
+  const arr    = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  const blob = new Blob([arr], { type: 'image/jpeg' });
+  const ref  = _storage.ref(`images/${setId}/${qId}.jpg`);
+  await ref.put(blob, { contentType: 'image/jpeg' });
+  return await ref.getDownloadURL();
+}
+
+// ── Lưu bộ đề lên Firestore + Storage ──
+async function saveSetToFirebase(setObj, onProgress) {
+  if (!initFirebase()) throw new Error('Firebase chưa khởi tạo');
+  const { id: setId, name, time, questions, createdAt } = setObj;
+  const total = questions.length;
+
+  // Upload ảnh
+  const withImages = questions.filter(q => q.image);
+  onProgress && onProgress(0, total, `⬆️ Upload ${withImages.length} ảnh...`);
+  for (let i = 0; i < withImages.length; i++) {
+    const q = withImages[i];
+    try {
+      q._imageUrl = await uploadImageFB(q.image, setId, q.id);
+    } catch(e) { q._imageUrl = null; }
+    onProgress && onProgress(i + 1, withImages.length, `⬆️ Ảnh ${i+1}/${withImages.length}`);
+  }
+
+  // Chuẩn bị questions
+  const processedQs = questions.map(q => {
+    const d = { ...q };
+    delete d.image;
+    if (q._imageUrl) { d.imageUrl = q._imageUrl; delete d._imageUrl; }
+    return d;
+  });
+
+  // Metadata
+  const byType = { mcq:0, truefalse:0, short:0, matching:0 };
+  processedQs.forEach(q => { if (byType[q.type] !== undefined) byType[q.type]++; });
+  const meta = { id: setId, name, time: time||90, createdAt: createdAt||Date.now(),
+                 questionCount: processedQs.length, byType, updatedAt: Date.now() };
+
+  onProgress && onProgress(0, total, '💾 Lưu câu hỏi...');
+  await _db.collection('sets').doc(setId).set(meta);
+
+  // Batch write questions
+  const BATCH = 400;
+  for (let i = 0; i < processedQs.length; i += BATCH) {
+    const batch = _db.batch();
+    processedQs.slice(i, i + BATCH).forEach(q => {
+      batch.set(_db.collection('sets').doc(setId).collection('questions').doc(q.id), q);
+    });
+    await batch.commit();
+    onProgress && onProgress(i + Math.min(BATCH, processedQs.length - i), total,
+      `💾 ${Math.min(i+BATCH, processedQs.length)}/${total} câu`);
+  }
+
+  // Update cache
+  try {
+    const cached = JSON.parse(localStorage.getItem('vsat_fb_sets_list')) || { data: [] };
+    const list = cached.data || [];
+    const idx = list.findIndex(s => s.id === setId);
+    if (idx >= 0) list[idx] = meta; else list.unshift(meta);
+    localStorage.setItem('vsat_fb_sets_list', JSON.stringify({ ts: Date.now(), data: list }));
+  } catch {}
+
+  return { ...meta, questions: processedQs };
+}
+
+// ── Lấy danh sách sets từ Firestore ──
+async function fetchSetsList(forceRefresh = false) {
+  if (!forceRefresh) {
+    try {
+      const c = JSON.parse(localStorage.getItem('vsat_fb_sets_list'));
+      if (c && c.ts && Date.now() - c.ts < 5*60*1000) return c.data;
+    } catch {}
+  }
+  if (!initFirebase()) throw new Error('Firebase chưa khởi tạo');
+  const snap = await _db.collection('sets').orderBy('createdAt', 'desc').get();
+  const list = snap.docs.map(d => d.data());
+  localStorage.setItem('vsat_fb_sets_list', JSON.stringify({ ts: Date.now(), data: list }));
+  return list;
+}
+
+// ── Lấy đầy đủ 1 bộ đề (metadata + questions) ──
+async function fetchSetFull(setId) {
+  const cacheKey = 'vsat_fb_cache_' + setId;
+  try {
+    const c = JSON.parse(localStorage.getItem(cacheKey));
+    if (c && c.ts && Date.now() - c.ts < 30*60*1000) return c.data;
+  } catch {}
+  if (!initFirebase()) throw new Error('Firebase chưa khởi tạo');
+  const metaDoc = await _db.collection('sets').doc(setId).get();
+  if (!metaDoc.exists) throw new Error('Bộ đề không tồn tại');
+  const qSnap = await _db.collection('sets').doc(setId).collection('questions').get();
+  const fullSet = { ...metaDoc.data(), questions: qSnap.docs.map(d => d.data()) };
+  localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: fullSet }));
+  return fullSet;
+}
+
+// ── Xóa bộ đề khỏi Firestore + Storage ──
+async function deleteSetFromFirebase(setId) {
+  if (!initFirebase()) return;
+  try {
+    const qSnap = await _db.collection('sets').doc(setId).collection('questions').get();
+    // Xóa ảnh
+    await Promise.allSettled(
+      qSnap.docs.filter(d => d.data().imageUrl)
+        .map(d => _storage.ref(`images/${setId}/${d.id}.jpg`).delete().catch(()=>{}))
+    );
+    // Xóa questions
+    const batch = _db.batch();
+    qSnap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    // Xóa set doc
+    await _db.collection('sets').doc(setId).delete();
+    localStorage.removeItem('vsat_fb_cache_' + setId);
+    _invalidateSetsListCache();
+  } catch(e) { console.warn('[Firebase] deleteSet:', e); }
+}
+
+// ── Sync sets từ Firebase vào local ──
+async function syncSetsFromFirebase() {
+  try {
+    const list = await fetchSetsList();
+    sets = list.map(s => ({ ...s, _fromFirebase: true }));
+    saveSets();
+    return true;
+  } catch(e) {
+    console.warn('[Firebase] sync failed:', e.message);
+    return false;
+  }
+}
+
+async function _initFirebaseSync(forceRefresh = false) {
+  setFbStatus('uploading', '⏳ Kết nối Firebase...');
+  try {
     if (forceRefresh) _invalidateSetsListCache();
     const ok = await syncSetsFromFirebase();
     if (ok) {
-      setFbStatus('ok', `☁️ ${sets.length} đề trên Firebase`);
+      setFbStatus('ok', `☁️ ${sets.length} đề`);
       renderSets();
       populateExamModeSelect();
     } else {
-      setFbStatus('error', '⚠️ Offline – dùng dữ liệu local');
+      setFbStatus('error', '⚠️ Offline');
     }
   } catch(e) {
-    setFbStatus('error', '⚠️ Lỗi kết nối Firebase');
-    console.error('[Firebase] init error:', e);
+    setFbStatus('error', '⚠️ Lỗi Firebase');
+    console.error('[Firebase]', e);
   }
 }
 
