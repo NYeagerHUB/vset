@@ -175,7 +175,11 @@ function renderMathHTML(str) {
 function rerenderPendingMath() {
   document.querySelectorAll('.math-pending').forEach(el => {
     const raw = el.textContent;
-    el.outerHTML = renderMathHTML(raw);
+    const rendered = renderMathHTML(raw);
+    // Tạo wrapper tạm để parse HTML
+    const tmp = document.createElement('span');
+    tmp.innerHTML = rendered;
+    el.replaceWith(...tmp.childNodes);
   });
 }
 
@@ -815,6 +819,13 @@ function startExam(data) {
   buildBottomDots();
   showScreen('exam-screen');
   scrollToQuestion(0);
+  // Re-render KaTeX sau khi DOM sẵn sàng (fix trường hợp KaTeX chưa load kịp)
+  if (window.katex) {
+    setTimeout(rerenderPendingMath, 100);
+  } else {
+    // Đợi KaTeX load xong
+    document.addEventListener('katex-ready', rerenderPendingMath, { once: true });
+  }
 }
 
 // ══════════════════════════════════════════
