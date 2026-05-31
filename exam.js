@@ -691,6 +691,7 @@ async function handleLogin() {
         return;
       }
     }
+    console.log('[DEBUG] questions[0]:', JSON.stringify(questions[0]).slice(0, 200));
     startExam({
       title: `${examSet.name} – ${user}`,
       time:  examSet.time || config.time,
