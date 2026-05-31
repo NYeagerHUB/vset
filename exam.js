@@ -383,7 +383,16 @@ async function deleteSetFromFirebase(setId) {
 async function syncSetsFromFirebase() {
   try {
     const list = await fetchSetsList();
-    sets = list.map(s => ({ ...s, _fromFirebase: true }));
+    // Giữ lại questions đã có local, merge với metadata từ Firebase
+    sets = list.map(s => {
+      const existing = sets.find(x => x.id === s.id);
+      return {
+        ...s,
+        // Giữ questions local nếu có (tránh mất data)
+        questions: existing?.questions || s.questions || [],
+        _fromFirebase: true
+      };
+    });
     saveSets();
     return true;
   } catch(e) {
@@ -1432,10 +1441,7 @@ function closeSetNameModal() {
 function confirmSetName() {
   const name = document.getElementById('set-name-input').value.trim();
   const time = parseInt(document.getElementById('set-time-input').value) || 90;
-  if (!name) {
-    document.getElementById('set-name-input').focus();
-    return;
-  }
+  if (!name) { document.getElementById('set-name-input').focus(); return; }
   if (!_pendingSetSave || !_pendingSetSave.length) { closeSetNameModal(); return; }
 
   const newSet = {
@@ -1448,53 +1454,29 @@ function confirmSetName() {
 
   closeSetNameModal();
 
-  // Lưu local trước để UI phản hồi ngay
+  // Lưu local với đầy đủ questions (để hiển thị ngay và dùng offline)
   sets.unshift(newSet);
   saveSets();
   switchDashPanel('panel-sets');
   renderSets();
-  showToast(`✅ Đã lưu "${name}" (${newSet.questions.length} câu) — đang upload Firebase...`);
+  populateExamModeSelect();
+  showToast(`✅ Đã lưu "${name}" (${newSet.questions.length} câu)`);
 
-  // Upload Firebase async
+  // Upload Firebase async (không xóa questions local sau khi upload)
   _saveSetToFirebaseWithProgress(newSet);
 }
 
 async function _saveSetToFirebaseWithProgress(setObj) {
-  const statusEl = document.getElementById('fb-sync-status');
   try {
-    if (typeof saveSetToFirebase !== 'function') return; // firebase.js chưa load
-
-    setFbStatus('uploading', `⬆️ Đang upload "${setObj.name}"...`);
-
+    setFbStatus('uploading', `⬆️ Upload "${setObj.name}"...`);
     await saveSetToFirebase(setObj, (cur, total, msg) => {
       setFbStatus('uploading', msg);
     });
-
-    // Cập nhật set trong local (bỏ questions nặng, chỉ giữ metadata)
-    const idx = sets.findIndex(s => s.id === setObj.id);
-    if (idx >= 0) {
-      sets[idx] = {
-        id:            setObj.id,
-        name:          setObj.name,
-        time:          setObj.time,
-        createdAt:     setObj.createdAt,
-        questionCount: setObj.questions.length,
-        byType:        (() => {
-          const b = { mcq:0, truefalse:0, short:0, matching:0 };
-          setObj.questions.forEach(q => { if (b[q.type] !== undefined) b[q.type]++; });
-          return b;
-        })(),
-        _fromFirebase: true
-      };
-      saveSets();
-      renderSets();
-    }
-
     setFbStatus('ok', '☁️ Firebase đã đồng bộ');
-    showToast(`✅ Đã lưu "${setObj.name}" lên Firebase!`);
+    showToast(`☁️ "${setObj.name}" đã lưu lên Firebase!`);
   } catch(e) {
-    setFbStatus('error', '⚠️ Upload thất bại');
-    showToast(`⚠️ Lưu Firebase thất bại: ${e.message}. Đề vẫn lưu local.`, true);
+    setFbStatus('error', '⚠️ Upload Firebase thất bại');
+    showToast(`⚠️ Firebase lỗi: ${e.message}. Đề vẫn lưu local.`, true);
     console.error('[Firebase] saveSet error:', e);
   }
 }
