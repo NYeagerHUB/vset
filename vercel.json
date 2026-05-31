@@ -1,9 +1,21 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" }
-  ],
   "routes": [
+    {
+      "src": "/style.css",
+      "headers": { "content-type": "text/css; charset=utf-8" },
+      "dest": "/style.css"
+    },
+    {
+      "src": "/exam.js",
+      "headers": { "content-type": "application/javascript; charset=utf-8" },
+      "dest": "/exam.js"
+    },
+    {
+      "src": "/pdf-import.js",
+      "headers": { "content-type": "application/javascript; charset=utf-8" },
+      "dest": "/pdf-import.js"
+    },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }
