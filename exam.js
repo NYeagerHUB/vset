@@ -201,6 +201,43 @@ function loadHistory() {
 function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
 
 // ══════════════════════════════════════════
+//  FIREBASE HELPERS (gọi sang firebase.js)
+// ══════════════════════════════════════════
+function setFbStatus(state, msg) {
+  const el = document.getElementById('fb-sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'fb-sync-status fb-' + state;
+}
+
+function _invalidateSetsListCache() {
+  localStorage.removeItem('vsat_fb_sets_list');
+}
+
+async function _initFirebaseSync(forceRefresh = false) {
+  setFbStatus('uploading', '⏳ Đang kết nối Firebase...');
+  try {
+    if (typeof syncSetsFromFirebase !== 'function') {
+      // firebase.js chưa load, thử lại sau 1s
+      setTimeout(() => _initFirebaseSync(forceRefresh), 1000);
+      return;
+    }
+    if (forceRefresh) _invalidateSetsListCache();
+    const ok = await syncSetsFromFirebase();
+    if (ok) {
+      setFbStatus('ok', `☁️ ${sets.length} đề trên Firebase`);
+      renderSets();
+      populateExamModeSelect();
+    } else {
+      setFbStatus('error', '⚠️ Offline – dùng dữ liệu local');
+    }
+  } catch(e) {
+    setFbStatus('error', '⚠️ Lỗi kết nối Firebase');
+    console.error('[Firebase] init error:', e);
+  }
+}
+
+// ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -220,6 +257,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sets-pdf-btn').addEventListener('click', () => {
     _setsImportMode = true;
     openPdfImportModal();
+  });
+  document.getElementById('sets-refresh-btn').addEventListener('click', () => {
+    _invalidateSetsListCache();
+    _initFirebaseSync(true);
   });
 
   // Set name modal
@@ -292,6 +333,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBankList();
   renderConfigTab();
   renderHistory();
+
+  // Sync sets từ Firebase (async, không block UI)
+  _initFirebaseSync();
 });
 
 // ══════════════════════════════════════════
@@ -396,10 +440,17 @@ function handleLogin() {
       drawErr.classList.remove('hidden');
       return;
     }
+    // Lấy questions: ưu tiên _cachedQuestions (đã fetch từ Firebase), rồi questions local
+    const questions = examSet._cachedQuestions || examSet.questions;
+    if (!questions || !questions.length) {
+      drawErr.textContent = '⚠️ Đề chưa tải xong. Vui lòng thử lại.';
+      drawErr.classList.remove('hidden');
+      return;
+    }
     startExam({
       title: `${examSet.name} – ${user}`,
       time:  examSet.time || config.time,
-      questions: examSet.questions
+      questions
     });
     return;
   }
@@ -1221,26 +1272,108 @@ function confirmSetName() {
     questions: _pendingSetSave,
     createdAt: Date.now()
   };
+
+  closeSetNameModal();
+
+  // Lưu local trước để UI phản hồi ngay
   sets.unshift(newSet);
   saveSets();
-  closeSetNameModal();
   switchDashPanel('panel-sets');
   renderSets();
-  showToast(`✅ Đã lưu bộ đề "${name}" (${newSet.questions.length} câu)`);
+  showToast(`✅ Đã lưu "${name}" (${newSet.questions.length} câu) — đang upload Firebase...`);
+
+  // Upload Firebase async
+  _saveSetToFirebaseWithProgress(newSet);
+}
+
+async function _saveSetToFirebaseWithProgress(setObj) {
+  const statusEl = document.getElementById('fb-sync-status');
+  try {
+    if (typeof saveSetToFirebase !== 'function') return; // firebase.js chưa load
+
+    setFbStatus('uploading', `⬆️ Đang upload "${setObj.name}"...`);
+
+    await saveSetToFirebase(setObj, (cur, total, msg) => {
+      setFbStatus('uploading', msg);
+    });
+
+    // Cập nhật set trong local (bỏ questions nặng, chỉ giữ metadata)
+    const idx = sets.findIndex(s => s.id === setObj.id);
+    if (idx >= 0) {
+      sets[idx] = {
+        id:            setObj.id,
+        name:          setObj.name,
+        time:          setObj.time,
+        createdAt:     setObj.createdAt,
+        questionCount: setObj.questions.length,
+        byType:        (() => {
+          const b = { mcq:0, truefalse:0, short:0, matching:0 };
+          setObj.questions.forEach(q => { if (b[q.type] !== undefined) b[q.type]++; });
+          return b;
+        })(),
+        _fromFirebase: true
+      };
+      saveSets();
+      renderSets();
+    }
+
+    setFbStatus('ok', '☁️ Firebase đã đồng bộ');
+    showToast(`✅ Đã lưu "${setObj.name}" lên Firebase!`);
+  } catch(e) {
+    setFbStatus('error', '⚠️ Upload thất bại');
+    showToast(`⚠️ Lưu Firebase thất bại: ${e.message}. Đề vẫn lưu local.`, true);
+    console.error('[Firebase] saveSet error:', e);
+  }
 }
 
 function deleteSet(id) {
   const s = sets.find(x => x.id === id);
   if (!s) return;
-  if (!confirm(`Xóa bộ đề "${s.name}"?`)) return;
+  if (!confirm(`Xóa bộ đề "${s.name}"?\nĐề sẽ bị xóa khỏi Firebase và không thể khôi phục.`)) return;
+
+  // Xóa local ngay
   sets = sets.filter(x => x.id !== id);
   saveSets();
   renderSets();
-  // Cập nhật dropdown login nếu đang ở login screen
   populateExamModeSelect();
+
+  // Xóa Firebase async
+  if (typeof deleteSetFromFirebase === 'function') {
+    setFbStatus('uploading', '🗑 Đang xóa...');
+    deleteSetFromFirebase(id)
+      .then(() => setFbStatus('ok', '☁️ Firebase đã đồng bộ'))
+      .catch(e => {
+        setFbStatus('error', '⚠️ Xóa Firebase thất bại');
+        console.warn('[Firebase] deleteSet error:', e);
+      });
+  }
 }
 
-function renameSet(id) {
+async function startSetExam(id) {
+  const s = sets.find(x => x.id === id);
+  if (!s) return;
+
+  // Nếu set từ Firebase và chưa có questions local → fetch trước
+  if (s._fromFirebase && (!s.questions || !s.questions.length)) {
+    setFbStatus('uploading', `⬇️ Đang tải đề "${s.name}"...`);
+    try {
+      const fullSet = await fetchSetFull(id);
+      // Lưu questions vào set local tạm thời (không saveSets để tránh nặng)
+      s._cachedQuestions = fullSet.questions;
+      setFbStatus('ok', '☁️ Firebase đã đồng bộ');
+    } catch(e) {
+      setFbStatus('error', '⚠️ Không tải được đề');
+      showToast('⚠️ Không tải được đề từ Firebase: ' + e.message, true);
+      return;
+    }
+  }
+
+  gotoLogin();
+  setTimeout(() => {
+    const sel = document.getElementById('login-exam-mode');
+    if (sel) sel.value = `set:${id}`;
+  }, 50);
+}
   const s = sets.find(x => x.id === id);
   if (!s) return;
   const newName = prompt('Tên mới cho bộ đề:', s.name);
@@ -1254,7 +1387,17 @@ function renameSet(id) {
 function exportSet(id) {
   const s = sets.find(x => x.id === id);
   if (!s) return;
-  const data = JSON.stringify({ title: s.name, time: s.time, questions: s.questions }, null, 2);
+  // Nếu set từ Firebase, cần fetch questions trước
+  if (s._fromFirebase && (!s.questions || !s.questions.length)) {
+    const qs = s._cachedQuestions;
+    if (!qs) { showToast('⚠️ Cần tải đề trước khi xuất. Nhấn 🎯 Thi để tải.', true); return; }
+    _doExportSet(s, qs);
+  } else {
+    _doExportSet(s, s.questions || []);
+  }
+}
+function _doExportSet(s, questions) {
+  const data = JSON.stringify({ title: s.name, time: s.time, questions }, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -1266,25 +1409,20 @@ function exportSet(id) {
 
 function addSetToBank(id) {
   const s = sets.find(x => x.id === id);
-  if (!s || !s.questions) return;
-  const added = s.questions.map(q => ({ ...q, id: uid() }));
+  if (!s) return;
+  const qs = s.questions || s._cachedQuestions;
+  if (!qs || !qs.length) {
+    showToast('⚠️ Cần tải đề trước. Nhấn 🎯 Thi để tải câu hỏi.', true);
+    return;
+  }
+  const added = qs.map(q => ({ ...q, id: uid() }));
   bank.push(...added);
   saveBank();
   renderBankList();
   showToast(`✅ Đã thêm ${added.length} câu từ "${s.name}" vào ngân hàng`);
 }
 
-function startSetExam(id) {
-  const s = sets.find(x => x.id === id);
-  if (!s) return;
-  // Chuyển sang login screen với mode đã chọn sẵn
-  gotoLogin();
-  // Chọn đúng set trong dropdown
-  setTimeout(() => {
-    const sel = document.getElementById('login-exam-mode');
-    if (sel) sel.value = `set:${id}`;
-  }, 50);
-}
+// startSetExam đã được định nghĩa ở trên (async version)
 
 // ══════════════════════════════════════════
 //  RENDER BANK LIST
