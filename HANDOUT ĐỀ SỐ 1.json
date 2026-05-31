@@ -1,0 +1,313 @@
+{
+  "title": "Đề thi Minh họa Toán 2025 – Trường ĐH Cần Thơ",
+  "time": 90,
+  "questions": [
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho dãy số $(u_n)$, biết $u_n = \\frac{-n}{n+1}$. Khi đó:",
+      "id": "1",
+      "statements": [
+        "Năm số hạng đầu tiên của dãy số là $u_1=-\\frac{1}{2}; u_2=-\\frac{2}{3}; u_3=-\\frac{3}{4}; u_4=-\\frac{4}{5}; u_5=-\\frac{5}{6}$.",
+        "Số hạng $u_{10}, u_{100}$ lần lượt là $-\\frac{10}{11}; -\\frac{100}{101}$.",
+        "$-\\frac{85}{86}$ là số hạng thứ 86 của dãy số $(u_n)$.",
+        "$-\\frac{99}{101}$ là một số hạng của dãy số $(u_n)$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình vẽ.",
+      "id": "2",
+      "statements": [
+        "Giá trị cực đại của hàm số đã cho bằng 3.",
+        "Trên khoảng $(0;+\\infty)$, giá trị nhỏ nhất của hàm số đạt được tại điểm $x = -1$.",
+        "Hàm số đồng biến trên khoảng $(0;2)$.",
+        "Phương trình $f(x) - 1 = 0$ có đúng 3 nghiệm."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho hình hộp $ABCD.A'B'C'D'$ có $A(0;0;0), B(3;0;0), D(0;3;0), D'(0;3;-3)$. Lấy $G$ là trọng tâm tam giác $B'BD'$.",
+      "id": "3",
+      "statements": [
+        "Tọa độ điểm $C$ là $C(-3;-3;0)$.",
+        "Diện tích tam giác $A'B'C$ là 3.",
+        "Góc giữa hai đường thẳng $AC$ và $B'G$ là $60^{\\circ}$.",
+        "Thể tích khối hộp đã cho là 27 (đvtt)."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trong buổi sinh hoạt nhóm của lớp, tổ một có 12 học sinh gồm 4 học sinh nữ trong đó có Bí thư và 8 học sinh nam trong đó có Lớp trưởng. Chia tổ thành 3 nhóm, mỗi nhóm gồm 4 học sinh và phải có ít nhất 1 học sinh nữ. Gọi $A$ là biến cố: “Lớp trưởng và Bí thư được chia cùng một nhóm”. Các mệnh đề sau đúng hay sai?",
+      "id": "4",
+      "statements": [
+        "Nhóm nhiều nhất có 2 học sinh nữ.",
+        "Số phần tử của không gian mẫu là $n(\\Omega) = 6720$.",
+        "Số phần tử của biến cố $A$ là $n(A) = 2100$.",
+        "Xác suất của biến cố $A$ là $\\frac{7}{32}$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Các mệnh đề sau đây đúng hay sai",
+      "id": "5",
+      "statements": [
+        "$\\int (\\sqrt[3]{x^2} + x - 2)dx = \\frac{3}{5}\\sqrt[3]{x^5} + \\frac{1}{2}x^2 - 2x + C$",
+        "$\\int \\frac{1}{2023x^{2024}}dx = \\frac{1}{2023^2 x^{2023}} + C$",
+        "$\\int (2x - 2024)^2 dx = x - 1012 + C$",
+        "$\\int (\\frac{1}{4}x^4 + 4x^3)dx = \\frac{1}{20}x^5 + \\frac{4}{3}x^4 + C$"
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho hình bình hành $ABCD$. Biết $A(1;2;-1), B(4;1;3), C(2;5;4)$.",
+      "id": "6",
+      "statements": [
+        "Tọa độ vectơ $\\vec{BC} = (-2;4;1)$.",
+        "Tọa độ vectơ $\\vec{AB} = 3\\vec{i} - \\vec{j} + 4\\vec{k}$.",
+        "Tọa độ điểm $D$ là $D(-1;6;8)$.",
+        "Tọa độ vectơ $\\vec{AD} = \\vec{i} + 3\\vec{j} + 5\\vec{k}$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Nhân ngày quốc tế Phụ nữ 20–10 năm 2024. Ông M đã mua tặng vợ một món quà và đặt nó trong một chiếc hộp chữ nhật có thể tích là 32 (đvtt) có đáy là hình vuông và không nắp. Để món quà trở nên đặc biệt và xứng tầm với giá trị của nó, ông quyết định mạ vàng chiếc hộp, biết rằng độ dày của lớp mạ trên mọi điểm của chiếc hộp là không đổi và như nhau. Gọi chiều cao và cạnh đáy của chiếc hộp lần lượt là $h$ và $x$.",
+      "id": "7",
+      "statements": [
+        "Công thức tính thể tích chiếc hộp là $V = x^2h$.",
+        "Diện tích các mặt ngoài của chiếc hộp là $S = 2x^2 + 4xh$.",
+        "Diện tích tất cả các mặt được mạ vàng là $S_{MV} = 2x^2 + 4xh$.",
+        "Khi cạnh đáy của chiếc hộp $x$ lớn hơn 4 thì $x$ càng lớn, lượng vàng được mạ càng tăng."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho hình chóp $S.ABCD$ có đáy là hình chữ nhật với $AB = 2a, AD = 6a$. Cạnh bên $SA$ vuông góc với mặt phẳng đáy, cạnh $SD = 4\\sqrt{3}a$.",
+      "id": "8",
+      "statements": [
+        "SA = 2\\sqrt{3}a.",
+        "Góc giữa đường thẳng $SB$ và mặt phẳng $(ABCD)$ bằng $30^{\\circ}$.",
+        "Khoảng cách từ điểm $C$ tới mặt phẳng $(SAB)$ bằng $6a$.",
+        "Thể tích của khối chóp $S.ABCD$ bằng $24\\sqrt{3}a^3$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Một hộp chứa bốn tấm thẻ cùng loại được ghi số lần lượt từ 1 đến 4. Bạn Lan lấy ra một cách ngẫu nhiên một thẻ từ hộp, xem số trên thẻ rồi bỏ thẻ đó ra ngoài và lại lấy ra một cách ngẫu nhiên thêm một thẻ nữa.",
+      "id": "9",
+      "statements": [
+        "Không gian mẫu của phép thử có 10 phần tử.",
+        "Số kết quả thuận lợi của biến cố “thẻ lấy ra lần thứ hai ghi số lẻ, biết rằng thẻ lấy ra lần thứ nhất ghi số lẻ” bằng 2.",
+        "Số kết quả thuận lợi của biến cố “thẻ lấy ra lần thứ hai ghi số lẻ, biết rằng thẻ lấy ra lần thứ nhất ghi số chẵn” bằng 4.",
+        "Số kết quả thuận lợi của biến cố “thẻ lấy ra lần thứ hai lớn hơn số 1, biết rằng thẻ lấy ra lần thứ nhất ghi số chẵn” bằng 5."
+      ]
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Giá trị còn lại của một chiếc xe theo thời gian khấu hao được xác định bởi công thức: $V(t) = 15000e^{-0,15t}$, trong đó $V(t)$ được tính bằng USD và $t$ được tính bằng năm. Hỏi sau bao nhiêu năm, giá trị còn lại của chiếc xe chỉ là 4518USD? (Kết quả được làm tròn đến hàng đơn vị)",
+      "id": "10",
+      "options": [
+        "8 năm.",
+        "3 năm.",
+        "4 năm.",
+        "5 năm."
+      ],
+      "placeholder": "A, B, C or D"
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Quỹ đạo của sao hỏa là elip có bán trục lớn 227,9 triệu km, bán trục nhỏ bằng 226,9 triệu km và quay quanh mặt trời một vòng hết 687 ngày. Khoảng cách xa nhất giữa sao hỏa và mặt trời gần số nào sau đây nhất?",
+      "id": "11",
+      "options": [
+        "206,6 triệu km.",
+        "227,9 triệu km.",
+        "249,2 triệu km.",
+        "21,3 triệu km."
+      ],
+      "placeholder": "A, B, C or D"
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Một chậu đựng nước có dạng hình chóp cụt tứ giác đều với chiều cao 3 dm, cạnh đáy lần lượt là 2 dm và 4 dm. Người ta bơm nước vào chậu với lưu lượng không đổi 4,75 lít/phút. Hỏi sau 2 phút chiều cao nước trong chậu là bao nhiêu dm, biết lúc đầu chậu không chứa nước?",
+      "id": "12",
+      "options": [
+        "1,5 dm.",
+        "0,95 dm.",
+        "1,02 dm.",
+        "2,38 dm."
+      ],
+      "placeholder": "A, B, C or D",
+      "statements": []
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Khảo sát thu nhập theo tháng của người lao động ở một công ty thu được mẫu số liệu ghép nhóm như sau\n$$\\begin{array}{|c|c|c|c|c|c|} \\hline \\text{Thu nhập (triệu đồng )} & [5;8) & [8;11) & [11;14) & [14;17) & [17;20) \\\\ \\hline \\text{Số người} & 30 & 55 & 45 & 30 & 20 \\\\ \\hline \\end{array}$$\nTính thu nhập trung bình của người lao động công ty?",
+      "id": "13",
+      "options": [
+        "10,5.",
+        "11,75.",
+        "12,5.",
+        "11."
+      ],
+      "placeholder": "A, B, C or D"
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Cho mẫu số liệu ghép nhóm có bảng tần số như sau\n$$\\begin{array}{|c|c|c|c|c|c|} \\hline \\text{Nhóm} & [16; 21) & [21; 26) & [26; 31) & [31; 36) & [36; 41) \\\\ \\hline \\text{Tần số} & 4 & 6 & 8 & 18 & 4 \\\\ \\hline \\end{array}$$\nTính số trung vị của mẫu số liệu trên ( làm tròn đến hàng phần mười).",
+      "id": "14",
+      "options": [
+        "31,6.",
+        "31,5.",
+        "30,6.",
+        "30,5."
+      ],
+      "placeholder": "A, B, C or D"
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Tổng hợp tiền lương tháng của một số nhân viên văn phòng được ghi lại như sau (đơn vị: triệu đồng).\n$$\\begin{array}{|c|c|c|c|c|} \\hline \\text{Lương tháng (triệu đồng)} & [6; 8) & [8; 10) & [10; 12) & [12; 14) \\\\ \\hline \\text{Số nhân viên} & 3 & 6 & 8 & 7 \\\\ \\hline \\end{array}$$\nHãy tính tứ phân vị thứ nhất của số liệu ở bảng tần số ghép nhóm trên?",
+      "id": "15",
+      "options": [
+        "9.",
+        "10,75.",
+        "9,25.",
+        "10."
+      ],
+      "placeholder": "A, B, C or D"
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Cho hàm số $y = f(x) = x^2e^x$.",
+      "id": "16",
+      "left": [
+        "Số khoảng nghịch biến của hàm số là",
+        "Hoành độ điểm cực tiểu của đồ thị hàm số bằng",
+        "Số khoảng đồng biến của hàm số là",
+        "Giá trị của biểu thức $\\frac{f'(1)}{e}$ bằng"
+      ],
+      "right": [
+        "A. $-2$",
+        "B. $-1$",
+        "C. 0",
+        "D. 1",
+        "E. 2",
+        "F. 3"
+      ]
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Cho hình chóp $S.ABC$ có mặt bên $(SAB)$ vuông góc với mặt đáy và tam giác $SAB$ đều cạnh $2a$. Lấy $H$ là trung điểm của $AB$. Biết tam giác $ABC$ vuông tại $C$ và cạnh $AC = a\\sqrt{3}$.",
+      "id": "17",
+      "left": [
+        "Giá trị của tỉ số $\\frac{d(C, (SAB))}{a}$ bằng",
+        "Giá trị của tỉ số $\\frac{V_{S.ABC}}{a^3}$ bằng",
+        "Cô-tang của góc giữa đường thẳng $SC$ và mặt phẳng $(ABC)$ bằng",
+        "Giá trị của tỉ số $\\frac{V_{S.HBC}}{a^3}$ bằng"
+      ],
+      "right": [
+        "A. $\\frac{1}{2}$",
+        "B. $\\frac{\\sqrt{3}}{2}$",
+        "C. $\\frac{\\sqrt{3}}{3}$",
+        "D. $\\frac{1}{4}$",
+        "E. $\\frac{1}{6}$",
+        "F. $\\sqrt{3}$"
+      ]
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho điểm $A(0; 1; 3)$ và đường thẳng $d: \\frac{x-1}{1} = \\frac{y}{-1} = \\frac{z}{2}$. Gọi $(S)$ là mặt cầu tâm $A$ và bán kính $R = 5$.",
+      "id": "18",
+      "left": [
+        "Bình phương khoảng cách từ điểm $A$ đến đường thẳng $d$ bằng",
+        "Cao độ hình chiếu vuông góc $H$ của điểm $A$ trên đường thẳng $d$ bằng",
+        "Tổng hoành độ của tất cả các giao điểm của đường thẳng $d$ và mặt cầu $(S)$ bằng",
+        "Hoành độ hình chiếu vuông góc $H$ của điểm $A$ trên đường thẳng $d$ bằng"
+      ],
+      "right": [
+        "A. $\\frac{14}{3}$",
+        "B. $\\frac{4}{3}$",
+        "C. $\\frac{5}{3}$",
+        "D. $\\frac{25}{3}$",
+        "E. $\\frac{10}{3}$",
+        "F. $\\frac{2}{3}$"
+      ]
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Trong không gian hệ tọa độ $Oxyz$, cho hai điểm $D(20;0;9)$ và $E(0;16;12)$. Gọi $(S)$ là mặt cầu tâm $O$ (gốc tọa độ) và có phương trình $x^2 + y^2 + z^2 = 400$.",
+      "id": "19",
+      "left": [
+        "Số giao điểm của đoạn thẳng $DE$ và mặt phẳng $(Oxy)$ là",
+        "Số giao điểm của tia $OE$ và mặt cầu $(S)$ là",
+        "Số giao điểm của đường thẳng $DE$ và mặt cầu $(S)$ là",
+        "Giá trị $k$ để đường thẳng $DE$ vuông góc với mặt phẳng $(P): -20x + 16y + kz = 0$ là"
+      ],
+      "right": [
+        "A. 3",
+        "B. 5",
+        "C.",
+        "D. 2",
+        "E. 4",
+        "F. 1"
+      ]
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Cho hàm số $y = f(x) = x^3 - 3x$.",
+      "id": "20",
+      "left": [
+        "Số nghiệm thực phân biệt của phương trình $f(f(x)) = 2$ là",
+        "Tổng các giá trị nguyên của tham số $m$ để hàm số $y = |f(x) + m|$ có đúng 5 điểm cực trị bằng",
+        "Tổng bình phương các hoành độ giao điểm của đồ thị hàm số đã cho và đường thẳng $y = x$ bằng",
+        "Số giá trị nguyên của tham số $m \\in [-5;5]$ để giá trị lớn nhất của hàm số $y = |f(x) + m|$ trên đoạn $[0;2]$ không vượt quá 5 là"
+      ],
+      "right": [
+        "A. 7",
+        "B. 2",
+        "C. 5",
+        "D. 0",
+        "E. 3",
+        "F. 8"
+      ]
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Cho hai hàm số $f(x) = -\\frac{1}{2}x^3 + \\frac{3}{2}x^2 + 1$ và $g(x) = -\\frac{1}{2}x + \\frac{5}{2}$ có đồ thị như hình vẽ bên dưới. Diện tích phần gạch chéo trong hình bằng bao nhiêu?",
+      "id": "21",
+      "placeholder": "Nhập đáp án",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Bất phương trình $\\frac{1}{3^x + 5} \\leq \\frac{1}{3^{x+1} - 1}$ có bao nhiêu nghiệm nguyên?",
+      "id": "22",
+      "placeholder": "Nhập đáp án",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Đường đi của một khinh khí cầu được gắn trong hệ trục tọa độ là một đường cong bậc hai trên bậc nhất có đồ thị cắt trục hoành tại hai điểm có tọa độ là (1;0) và (8;0) với đơn vị trên hệ trục tọa độ là 1(km). Biết rằng điểm cực đại của đồ thị hàm số là điểm (6;5). Hỏi khi khí cầu đi qua điểm cực đại và cách mặt đất 3875(m) thì khí cầu cách gốc tọa độ theo phương ngang bao nhiêu? (đơn vị: km).",
+      "id": "23",
+      "placeholder": "Nhập đáp án",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Một bàn cờ vua gồm 8x8 ô vuông, mỗi ô vuông có cạnh bằng 1 đơn vị. Một ô vừa là hình vuông hay hình chữ nhật, hai ô là hình chữ nhật,. Chọn ngẫu nhiên một hình chữ nhật trên bàn cờ. Xác suất để hình được chọn là một hình vuông có cạnh lớn hơn 4 đơn vị bằng $\\frac{a}{b}$ với $\\frac{a}{b}$ là phân số tối giản và $a, b \\in \\mathbb{Z}$. Tính giá trị biểu thức $T = a + 2b$.",
+      "id": "24",
+      "placeholder": "Nhập đáp án",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho mặt cầu $(S): x^2 + y^2 + z^2 - 2x - 2z - 38 = 0$ và hai mặt phẳng $(\\alpha): x + 2y - 4 = 0; (\\beta): 3y + z - 5 = 0$. Xét $(P)$ là mặt phẳng thay đổi, song song với giao tuyến của hai mặt phẳng $(\\alpha), (\\beta)$ và tiếp xúc với mặt cầu $(S)$. Khoảng cách lớn nhất từ điểm $A(5; -5; 6)$ đến mặt phẳng $(P)$ bằng bao nhiêu. (Kết quả làm tròn đến hàng phần mười)",
+      "id": "25",
+      "placeholder": "Nhập đáp án",
+      "statements": []
+    }
+  ],
+  "groups": [],
+  "metadata": {
+    "subject": "Toán học",
+    "title": "BỘ ĐỀ ĐGNL V-SAT"
+  }
+}

@@ -1519,6 +1519,9 @@ function openSetQEdit(setId, qIdx) {
   _setQEditSetId = setId;
   _setQEditQIdx  = qIdx;
 
+  // Ẩn list modal khi mở editor
+  document.getElementById('set-qlist-modal').classList.add('hidden');
+
   document.getElementById('set-qedit-title').textContent = `✏️ Sửa câu ${qIdx+1} [${typeFull(q.type)}]`;
 
   // Dùng lại logic của openBankEdit
@@ -1586,6 +1589,10 @@ function openSetQEdit(setId, qIdx) {
 
 function closeSetQEdit() {
   document.getElementById('set-qedit-modal').classList.add('hidden');
+  // Mở lại list modal nếu có setId
+  if (_setQEditSetId) {
+    openSetQList(_setQEditSetId);
+  }
   _setQEditSetId = null; _setQEditQIdx = -1;
 }
 
@@ -1655,16 +1662,17 @@ async function saveSetQEdit() {
   // Lưu local
   s.questions[_setQEditQIdx] = q;
   saveSets();
-  closeSetQEdit();
+  const savedSetId = _setQEditSetId;
+  _setQEditSetId = null; _setQEditQIdx = -1;
+  document.getElementById('set-qedit-modal').classList.add('hidden');
 
   // Sync lên Firebase
   if (initFirebase()) {
     try {
       setFbStatus('uploading', '💾 Đang lưu...');
-      await _db.collection('sets').doc(_setQEditSetId)
+      await _db.collection('sets').doc(savedSetId)
         .collection('questions').doc(q.id).set(q);
-      // Xóa cache để fetch lại
-      localStorage.removeItem('vsat_fb_cache_' + _setQEditSetId);
+      localStorage.removeItem('vsat_fb_cache_' + savedSetId);
       setFbStatus('ok', '☁️ Đã lưu');
       showToast('✅ Đã lưu câu hỏi lên Firebase');
     } catch(e) {
@@ -1675,11 +1683,8 @@ async function saveSetQEdit() {
     showToast('✅ Đã lưu câu hỏi (local)');
   }
 
-  // Refresh list nếu đang mở
-  const listModal = document.getElementById('set-qlist-modal');
-  if (!listModal.classList.contains('hidden')) {
-    openSetQList(_setQEditSetId);
-  }
+  // Mở lại list
+  openSetQList(savedSetId);
 }
 
 function handleSetsImport(e) {
