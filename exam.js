@@ -334,8 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderConfigTab();
   renderHistory();
 
-  // Sync sets từ Firebase (async, không block UI)
-  _initFirebaseSync();
+  // Sync sets từ Firebase (async, không block UI — delay 500ms để UI render trước)
+  setTimeout(() => _initFirebaseSync(), 500);
 });
 
 // ══════════════════════════════════════════

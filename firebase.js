@@ -36,39 +36,29 @@ const FB_SETS_LIST_KEY = 'vsat_fb_sets_list';
 // ══════════════════════════════════════════
 //  LOAD FIREBASE SDK (CDN)
 // ══════════════════════════════════════════
-function loadFirebaseSDK() {
+//  LOAD FIREBASE SDK (CDN) — load tuần tự
+// ══════════════════════════════════════════
+function loadScript(src) {
   return new Promise((resolve, reject) => {
-    if (_fbReady) { resolve(); return; }
-
-    // Load Firebase App + Firestore + Storage từ CDN
-    const scripts = [
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js'
-    ];
-
-    let loaded = 0;
-    scripts.forEach(src => {
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = () => {
-        loaded++;
-        if (loaded === scripts.length) {
-          try {
-            if (!firebase.apps.length) {
-              firebase.initializeApp(FIREBASE_CONFIG);
-            }
-            _db      = firebase.firestore();
-            _storage = firebase.storage();
-            _fbReady = true;
-            resolve();
-          } catch(e) { reject(e); }
-        }
-      };
-      s.onerror = () => reject(new Error('Không thể tải Firebase SDK'));
-      document.head.appendChild(s);
-    });
+    if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload  = resolve;
+    s.onerror = () => reject(new Error('Không tải được: ' + src));
+    document.head.appendChild(s);
   });
+}
+
+async function loadFirebaseSDK() {
+  if (_fbReady && window.firebase) return;
+  // Load tuần tự: app trước, rồi mới đến firestore và storage
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js');
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  _db      = firebase.firestore();
+  _storage = firebase.storage();
+  _fbReady = true;
 }
 
 // ══════════════════════════════════════════
