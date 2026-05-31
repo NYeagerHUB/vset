@@ -763,28 +763,80 @@ function confirmPdfImport() {
   });
   if (!toAdd.length) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
 
-  const withAns = toAdd.filter(checkParsedAnswer).length;
-  const withImg = toAdd.filter(q => q.image).length;
-
-  // Đọc mode TRƯỚC khi đóng modal (closePdfImportModal reset _setsImportMode)
+  // Đọc mode TRƯỚC khi đóng modal
   const savingToSets = !!_setsImportMode;
   closePdfImportModal();
 
-  // ── Lưu vào kho đề ──
+  // ── Lưu vào kho đề → mở modal đặt tên + môn ──
   if (savingToSets) {
-    openSetNameModal('Đề PDF mới', config.time, toAdd);
+    openSetNameModal('Đề PDF mới', (typeof config !== 'undefined' ? config.time : 90), toAdd, 'Toán');
     return;
   }
 
-  // ── Lưu vào ngân hàng (mặc định) ──
-  bank.push(...toAdd);
-  saveBank();
-  renderBankList();
+  // ── Lưu vào ngân hàng → mở modal chọn môn ──
+  openBankSubjectModal(toAdd);
+}
 
-  const msg = document.getElementById('pdf-import-toast');
-  msg.textContent = `✅ Đã thêm ${toAdd.length} câu (${withAns} có đáp án${withImg ? `, ${withImg} có ảnh` : ''}) vào ngân hàng!`;
-  msg.classList.remove('hidden');
-  setTimeout(() => msg.classList.add('hidden'), 5000);
+// Modal chọn môn khi thêm vào ngân hàng từ PDF
+function openBankSubjectModal(questions) {
+  // Tạo modal nếu chưa có
+  let modal = document.getElementById('bank-subject-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'bank-subject-modal';
+    modal.className = 'modal-overlay hidden';
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:380px">
+        <div class="modal-header">
+          <h3>📚 Chọn môn học cho ngân hàng</h3>
+          <button class="modal-x-close" onclick="document.getElementById('bank-subject-modal').classList.add('hidden')">✕</button>
+        </div>
+        <div class="modal-body" style="padding:1rem 1.3rem">
+          <div class="bedit-group">
+            <label class="bedit-label">Môn học</label>
+            <select class="bedit-select" id="bsm-subject">
+              <option value="Toán">Toán</option>
+              <option value="Ngữ Văn">Ngữ Văn</option>
+              <option value="Vật Lý">Vật Lý</option>
+              <option value="Hóa Học">Hóa Học</option>
+              <option value="Sinh Học">Sinh Học</option>
+              <option value="Lịch Sử">Lịch Sử</option>
+              <option value="Địa Lý">Địa Lý</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+          <div id="bsm-info" style="font-size:.8rem;color:var(--text-muted);margin-top:.4rem"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="document.getElementById('bank-subject-modal').classList.add('hidden')">Huỷ</button>
+          <button class="modal-confirm" id="bsm-confirm" style="background:var(--success)">✅ Thêm vào ngân hàng</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  const withAns = questions.filter(checkParsedAnswer).length;
+  const withImg = questions.filter(q => q.image).length;
+  document.getElementById('bsm-info').textContent =
+    `${questions.length} câu (${withAns} có đáp án${withImg ? `, ${withImg} có ảnh` : ''})`;
+
+  modal.classList.remove('hidden');
+
+  // Gán handler
+  const confirmBtn = document.getElementById('bsm-confirm');
+  confirmBtn.onclick = () => {
+    const subject = document.getElementById('bsm-subject').value || 'Toán';
+    modal.classList.add('hidden');
+
+    // Thêm subject vào từng câu
+    const toAdd = questions.map(q => ({ ...q, subject }));
+    bank.push(...toAdd);
+    saveBank();
+    if (typeof populateSubjectFilters === 'function') populateSubjectFilters();
+    renderBankList();
+
+    showToast(`✅ Đã thêm ${toAdd.length} câu vào ngân hàng môn ${subject}`);
+  };
 }
 
 function selectAllPdfItems(v) {
@@ -1025,7 +1077,7 @@ function initCropModal() {
 function initPdfImport() {
   initCropModal();
 
-  document.getElementById('bank-pdf-btn').addEventListener('click', () => openPdfImportModal(false));
+  // bank-pdf-btn is handled in exam.js DOMContentLoaded
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfImportModal);
   document.getElementById('pdf-modal-cancel').addEventListener('click', closePdfImportModal);
 

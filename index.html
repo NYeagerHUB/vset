@@ -6,12 +6,10 @@
   <title>VSAT – Thi Thử Trực Tuyến</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <!-- KaTeX -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"/>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
-    onload="window._katexReady = true; document.dispatchEvent(new Event('katex-ready'))"></script>
-  <!-- Firebase SDK (chỉ cần App + Firestore + Auth) -->
+    onload="window._katexReady=true;document.dispatchEvent(new Event('katex-ready'))"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -20,12 +18,10 @@
 <body>
 
 <!-- ═══════════════════════════════════════
-     DASHBOARD  (màn hình chính quản lý)
+     DASHBOARD
 ═══════════════════════════════════════ -->
 <div id="dashboard-screen" class="screen active">
   <div class="dash-layout">
-
-    <!-- Sidebar -->
     <aside class="dash-sidebar">
       <div class="dash-logo">
         <span class="dash-logo-icon">📝</span>
@@ -42,21 +38,20 @@
       </div>
     </aside>
 
-    <!-- Main content -->
     <main class="dash-main">
 
-      <!-- ── PANEL: SETS (KHO ĐỀ) ── -->
+      <!-- ── PANEL: SETS ── -->
       <div class="dash-panel active" id="panel-sets">
         <div class="panel-header">
           <div>
             <h2 class="panel-title">Kho đề thi</h2>
-            <p class="panel-sub">Mỗi đề được lưu riêng trên Firebase. Thi theo đề cố định hoặc bốc ngẫu nhiên từ ngân hàng.</p>
+            <p class="panel-sub">Nhập PDF – web tự chuyển sang JSON rồi lưu vào kho. Thi theo đề cố định hoặc bốc ngẫu nhiên từ ngân hàng.</p>
           </div>
           <div class="panel-header-actions">
             <span id="fb-sync-status" class="fb-sync-status">⏳ Đang kết nối...</span>
             <button class="ph-btn" id="sets-refresh-btn" title="Tải lại từ Firebase">🔄</button>
             <button class="ph-btn ph-pdf" id="sets-pdf-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Nhập PDF
             </button>
             <button class="ph-btn ph-import" id="sets-import-btn">
@@ -66,15 +61,11 @@
             <input type="file" id="sets-file-input" accept=".json" hidden/>
           </div>
         </div>
-
-        <!-- Empty state -->
         <div class="sets-empty-state" id="sets-empty-state">
           <div class="bes-icon">📂</div>
           <div class="bes-title">Kho đề trống</div>
-          <div class="bes-sub">Nhấn <b>Nhập PDF</b> hoặc <b>Nhập JSON</b> để thêm đề thi vào kho.</div>
+          <div class="bes-sub">Nhấn <b>Nhập PDF</b> để tự động chuyển đề thi sang JSON và lưu vào kho.</div>
         </div>
-
-        <!-- Sets grid -->
         <div class="sets-grid" id="sets-grid"></div>
       </div>
 
@@ -83,11 +74,11 @@
         <div class="panel-header">
           <div>
             <h2 class="panel-title">Ngân hàng câu hỏi</h2>
-            <p class="panel-sub">Pool câu hỏi để bốc ngẫu nhiên. Nhập JSON/PDF để thêm câu vào ngân hàng.</p>
+            <p class="panel-sub">Câu hỏi được tổ chức theo <b>môn học</b> và <b>loại câu hỏi</b>. Nhập PDF/JSON để thêm vào ngân hàng.</p>
           </div>
           <div class="panel-header-actions">
             <button class="ph-btn ph-pdf" id="bank-pdf-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Nhập PDF
             </button>
             <button class="ph-btn ph-import" id="bank-import-btn">
@@ -95,15 +86,12 @@
               Nhập JSON
             </button>
             <input type="file" id="bank-file-input" accept=".json" hidden multiple/>
+            <button class="ph-btn ph-export" id="bank-export-btn">⬇️ Xuất JSON</button>
             <button class="ph-btn ph-danger" id="bank-clear-btn">🗑 Xóa tất cả</button>
-            <button class="ph-btn ph-export" id="bank-export-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Xuất JSON
-            </button>
           </div>
         </div>
 
-        <!-- Stats row -->
+        <!-- Stats tổng quan -->
         <div class="bank-stats-row">
           <div class="bsr-card total">Tổng <span id="bstat-total">0</span></div>
           <div class="bsr-card mcq">TN <span id="bstat-mcq">0</span></div>
@@ -112,65 +100,33 @@
           <div class="bsr-card match">Ghép <span id="bstat-match">0</span></div>
         </div>
 
-        <!-- JSON format guide -->
-        <div class="format-guide" id="format-guide">
-          <div class="fg-header" id="fg-toggle">
-            <span>📄 Hướng dẫn định dạng JSON &amp; nhập đáp án</span>
-            <span class="fg-arrow">▼</span>
-          </div>
-          <div class="fg-body hidden" id="fg-body">
-            <p>File JSON cần có cấu trúc <code>{"questions":[...]}</code>. Mỗi câu hỏi như sau:</p>
-            <pre class="fg-code">{
-  "type": "mcq",
-  "question": "Câu hỏi...",
-  "options": ["A...","B...","C...","D..."],
-  "answer": 0
-}
-
-{
-  "type": "truefalse",
-  "question": "Câu hỏi...",
-  "statements": ["Mệnh đề 1","Mệnh đề 2","Mệnh đề 3","Mệnh đề 4"],
-  "answers": ["D","S","D","S"]
-}
-
-{
-  "type": "short",
-  "question": "Câu hỏi...",
-  "answer": "63"
-}
-
-{
-  "type": "matching",
-  "question": "Câu hỏi...",
-  "left": ["Ý 1","Ý 2","Ý 3","Ý 4"],
-  "right": ["A...","B...","C...","D...","E...","F..."],
-  "answers": [0,1,2,3]
-}</pre>
-            <p class="fg-note">💡 <b>Đáp án</b>: MCQ – index (0=A), Đúng/Sai – "D"/"S", Trả lời ngắn – chuỗi so sánh, Ghép cột – index của cột phải. Có thể để trống và nhập sau qua nút ✏️ sửa.</p>
+        <!-- Bộ lọc theo môn + loại -->
+        <div class="bank-filter-bar">
+          <div class="bank-filter-row">
+            <label class="filter-label">📚 Môn:</label>
+            <select class="filter-sel" id="bank-filter-subject">
+              <option value="">Tất cả môn</option>
+            </select>
+            <label class="filter-label">📋 Loại:</label>
+            <select class="filter-sel" id="bank-filter-type">
+              <option value="">Tất cả loại</option>
+              <option value="mcq">Trắc nghiệm</option>
+              <option value="truefalse">Đúng/Sai</option>
+              <option value="short">Trả lời ngắn</option>
+              <option value="matching">Ghép cột</option>
+            </select>
+            <input type="text" class="filter-search" id="bank-search" placeholder="🔍 Tìm kiếm câu hỏi..."/>
           </div>
         </div>
 
-        <!-- Filter -->
-        <div class="bank-filter-row">
-          <select class="filter-sel" id="bank-filter-type">
-            <option value="">Tất cả loại</option>
-            <option value="mcq">Trắc nghiệm</option>
-            <option value="truefalse">Đúng/Sai</option>
-            <option value="short">Trả lời ngắn</option>
-            <option value="matching">Ghép cột</option>
-          </select>
-          <input type="text" class="filter-search" id="bank-search" placeholder="🔍 Tìm kiếm câu hỏi..."/>
-        </div>
+        <!-- Tabs môn học -->
+        <div class="bank-subject-tabs" id="bank-subject-tabs"></div>
 
-        <!-- Empty state -->
         <div class="bank-empty-state" id="bank-empty-state">
           <div class="bes-icon">📭</div>
           <div class="bes-title">Ngân hàng trống</div>
-          <div class="bes-sub">Nhấn <b>Nhập JSON</b> để thêm câu hỏi từ file đề thi có sẵn.</div>
+          <div class="bes-sub">Nhấn <b>Nhập PDF</b> hoặc <b>Nhập JSON</b> để thêm câu hỏi.</div>
         </div>
-
-        <!-- Question list -->
         <div class="bank-list-grid" id="bank-list"></div>
       </div>
 
@@ -179,63 +135,47 @@
         <div class="panel-header">
           <div>
             <h2 class="panel-title">Cấu hình bốc đề</h2>
-            <p class="panel-sub">Hệ thống sẽ bốc ngẫu nhiên đúng số câu đã thiết lập từ ngân hàng mỗi lần thi.</p>
+            <p class="panel-sub">Hệ thống bốc ngẫu nhiên đúng số câu đã thiết lập từ ngân hàng mỗi lần thi.</p>
           </div>
         </div>
-
+        <div class="cfg-subject-row">
+          <label class="cfg-time-label">📚 Bốc từ môn:</label>
+          <select class="filter-sel" id="cfg-subject-filter" style="min-width:160px">
+            <option value="">Tất cả môn</option>
+          </select>
+        </div>
         <div class="cfg-grid">
           <div class="cfg-card">
             <div class="cfg-card-type mcq">Trắc nghiệm (MCQ)</div>
             <div class="cfg-card-avail" id="avail-mcq">0 câu trong ngân hàng</div>
-            <div class="cfg-card-input-row">
-              <span>Bốc</span>
-              <input type="number" class="cfg-num" id="cfg-mcq" min="0" max="99" value="9"/>
-              <span>câu</span>
-            </div>
+            <div class="cfg-card-input-row"><span>Bốc</span><input type="number" class="cfg-num" id="cfg-mcq" min="0" max="99" value="9"/><span>câu</span></div>
           </div>
           <div class="cfg-card">
             <div class="cfg-card-type tf">Đúng/Sai</div>
             <div class="cfg-card-avail" id="avail-tf">0 câu trong ngân hàng</div>
-            <div class="cfg-card-input-row">
-              <span>Bốc</span>
-              <input type="number" class="cfg-num" id="cfg-tf" min="0" max="99" value="11"/>
-              <span>câu</span>
-            </div>
+            <div class="cfg-card-input-row"><span>Bốc</span><input type="number" class="cfg-num" id="cfg-tf" min="0" max="99" value="11"/><span>câu</span></div>
           </div>
           <div class="cfg-card">
             <div class="cfg-card-type short">Trả lời ngắn</div>
             <div class="cfg-card-avail" id="avail-short">0 câu trong ngân hàng</div>
-            <div class="cfg-card-input-row">
-              <span>Bốc</span>
-              <input type="number" class="cfg-num" id="cfg-short" min="0" max="99" value="5"/>
-              <span>câu</span>
-            </div>
+            <div class="cfg-card-input-row"><span>Bốc</span><input type="number" class="cfg-num" id="cfg-short" min="0" max="99" value="5"/><span>câu</span></div>
           </div>
           <div class="cfg-card">
             <div class="cfg-card-type match">Ghép cột</div>
             <div class="cfg-card-avail" id="avail-match">0 câu trong ngân hàng</div>
-            <div class="cfg-card-input-row">
-              <span>Bốc</span>
-              <input type="number" class="cfg-num" id="cfg-match" min="0" max="99" value="0"/>
-              <span>câu</span>
-            </div>
+            <div class="cfg-card-input-row"><span>Bốc</span><input type="number" class="cfg-num" id="cfg-match" min="0" max="99" value="0"/><span>câu</span></div>
           </div>
         </div>
-
         <div class="cfg-bottom-row">
           <div class="cfg-time-card">
             <label class="cfg-time-label">⏱ Thời gian làm bài</label>
-            <div class="cfg-card-input-row">
-              <input type="number" class="cfg-num" id="cfg-time" min="5" max="300" value="90"/>
-              <span>phút</span>
-            </div>
+            <div class="cfg-card-input-row"><input type="number" class="cfg-num" id="cfg-time" min="5" max="300" value="90"/><span>phút</span></div>
           </div>
           <div class="cfg-total-card">
             <div class="cfg-total-label">Tổng số câu mỗi đề</div>
             <div class="cfg-total-num" id="cfg-total">25</div>
           </div>
         </div>
-
         <div class="cfg-warn hidden" id="config-warn"></div>
         <button class="cfg-save-btn" id="config-save-btn">💾 Lưu cấu hình</button>
         <span class="cfg-saved-msg hidden" id="config-saved-msg">✓ Đã lưu!</span>
@@ -256,16 +196,7 @@
         </div>
         <div class="hist-table-wrap">
           <table class="hist-table" id="hist-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Thí sinh</th>
-                <th>Môn thi</th>
-                <th>Số câu</th>
-                <th>Điểm</th>
-                <th>Thời gian</th>
-              </tr>
-            </thead>
+            <thead><tr><th>#</th><th>Thí sinh</th><th>Môn thi</th><th>Số câu</th><th>Điểm</th><th>Thời gian</th></tr></thead>
             <tbody id="hist-tbody"></tbody>
           </table>
         </div>
@@ -281,13 +212,11 @@
 <div id="login-screen" class="screen">
   <div class="login-page">
     <h1 class="login-org">Trung tâm Khảo thí quốc gia và Đánh giá chất lượng giáo dục</h1>
-
     <div class="login-info-box">
       <div class="login-info-title">Thông tin đăng nhập</div>
       <div class="login-info-line">Tài khoản: <span id="info-account">VKOD00000</span></div>
       <div class="login-info-line">Mật khẩu: <span id="info-password">--------</span></div>
     </div>
-
     <div class="login-card">
       <h2 class="login-title">Đăng nhập</h2>
       <div class="login-form">
@@ -328,11 +257,21 @@
         </button>
         <div id="google-user-info" class="google-user-info hidden"></div>
         <div class="login-divider"><span>hoặc nạp đề trực tiếp</span></div>
-        <label class="login-import-btn" for="file-input-login">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Tải đề JSON lên (bỏ qua ngân hàng)
-        </label>
-        <input type="file" id="file-input-login" accept=".json" hidden/>
+        <div class="login-direct-row">
+          <label class="login-import-btn" for="file-input-login">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Tải đề JSON
+          </label>
+          <input type="file" id="file-input-login" accept=".json" hidden/>
+          <label class="login-import-btn login-pdf-btn" for="file-input-login-pdf">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Tải đề PDF
+          </label>
+          <input type="file" id="file-input-login-pdf" accept=".pdf" hidden/>
+        </div>
+        <div id="pdf-login-status" class="pdf-login-status hidden">
+          <span id="pdf-login-msg">⏳ Đang đọc PDF...</span>
+        </div>
         <div id="import-error" class="import-error hidden"></div>
         <button class="back-to-dash-btn" id="back-to-dash-btn">← Quay lại Dashboard</button>
       </div>
@@ -385,7 +324,6 @@
       <button class="rab-btn rab-restart" id="restart-btn">🔄 Thi lại</button>
       <button class="rab-btn rab-dash" id="goto-dash-btn">🏠 Dashboard</button>
     </div>
-
     <div class="result-box">
       <div class="result-box-title">Kết quả bài thi</div>
       <div class="result-info-line">Số báo danh: <b id="result-sbd">VKOD00000</b></div>
@@ -393,7 +331,6 @@
       <div class="result-info-line">Số câu đã làm: <b id="result-answered">0</b> / <b id="result-total">0</b></div>
       <div class="result-score-line">Điểm thi: <span class="result-score-val" id="result-score">0 điểm</span></div>
     </div>
-
     <div class="answer-display-panel hidden" id="answer-display-panel">
       <div class="adp-header">
         <span class="adp-title">Đáp án chính thức</span>
@@ -405,8 +342,10 @@
 </div>
 
 <!-- ═══════════════════════════════════════
-     SET QUESTION EDITOR MODAL
+     MODALS
 ═══════════════════════════════════════ -->
+
+<!-- Set question editor -->
 <div id="set-qedit-modal" class="modal-overlay hidden">
   <div class="modal-box modal-wide">
     <div class="modal-header">
@@ -421,9 +360,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     SET QUESTIONS LIST MODAL
-═══════════════════════════════════════ -->
+<!-- Set questions list -->
 <div id="set-qlist-modal" class="modal-overlay hidden">
   <div class="modal-box modal-wide" style="max-width:860px">
     <div class="modal-header">
@@ -437,11 +374,9 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     SET NAME MODAL (đặt tên bộ đề)
-═══════════════════════════════════════ -->
+<!-- Set name modal -->
 <div id="set-name-modal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width:420px">
+  <div class="modal-box" style="max-width:460px">
     <div class="modal-header">
       <h3 id="set-name-modal-title">💾 Lưu vào kho đề</h3>
       <button class="modal-x-close" id="set-name-close">✕</button>
@@ -452,10 +387,30 @@
         <input class="bedit-input" id="set-name-input" placeholder="VD: Đề số 1, Đề Cần Thơ 2025..." maxlength="80"/>
       </div>
       <div class="bedit-group">
+        <label class="bedit-label">📚 Môn học</label>
+        <select class="bedit-input" id="set-subject-input">
+          <option value="Toán">Toán</option>
+          <option value="Ngữ Văn">Ngữ Văn</option>
+          <option value="Vật Lý">Vật Lý</option>
+          <option value="Hóa Học">Hóa Học</option>
+          <option value="Sinh Học">Sinh Học</option>
+          <option value="Lịch Sử">Lịch Sử</option>
+          <option value="Địa Lý">Địa Lý</option>
+          <option value="Khác">Khác</option>
+        </select>
+      </div>
+      <div class="bedit-group">
         <label class="bedit-label">⏱ Thời gian làm bài (phút)</label>
         <input class="bedit-input" id="set-time-input" type="number" min="5" max="300" value="90"/>
       </div>
       <div id="set-name-info" class="set-name-info"></div>
+      <!-- Option: cũng thêm vào ngân hàng -->
+      <div class="bedit-group" style="margin-top:.5rem">
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.84rem;color:var(--text-muted)">
+          <input type="checkbox" id="set-also-bank" checked/>
+          Đồng thời thêm câu hỏi vào ngân hàng (theo môn đã chọn)
+        </label>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" id="set-name-cancel">Huỷ</button>
@@ -464,9 +419,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     ANSWER EDITOR MODAL
-═══════════════════════════════════════ -->
+<!-- Answer editor modal -->
 <div id="answer-editor-modal" class="modal-overlay hidden">
   <div class="modal-box modal-wide">
     <div class="modal-header">
@@ -484,9 +437,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     BANK ITEM EDIT MODAL
-═══════════════════════════════════════ -->
+<!-- Bank item edit modal -->
 <div id="bank-edit-modal" class="modal-overlay hidden">
   <div class="modal-box modal-wide">
     <div class="modal-header">
@@ -501,9 +452,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     SUBMIT CONFIRM MODAL
-═══════════════════════════════════════ -->
+<!-- Submit confirm modal -->
 <div id="submit-modal" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-header"><h3>Xác nhận nộp bài</h3></div>
@@ -515,25 +464,17 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     PDF IMPORT MODAL
-═══════════════════════════════════════ -->
+<!-- PDF Import Modal -->
 <div id="pdf-import-modal" class="modal-overlay hidden">
   <div class="modal-box modal-pdf">
     <div class="modal-header">
-      <h3>📄 Nhập đề thi từ PDF</h3>
+      <h3 id="pdf-modal-title">📄 Nhập đề thi từ PDF</h3>
       <button class="modal-x-close" id="pdf-modal-close">✕</button>
     </div>
     <div class="modal-body pdf-modal-body">
-
-      <!-- 2 cột: đề + đáp án -->
       <div class="pdf-upload-row">
-
-        <!-- Cột trái: File đề -->
         <div class="pdf-upload-col">
-          <div class="pdf-col-label">
-            📄 File đề thi <span class="pdf-col-required">*</span>
-          </div>
+          <div class="pdf-col-label">📄 File đề thi <span class="pdf-col-required">*</span></div>
           <div class="pdf-drop-zone" id="pdf-drop-zone">
             <input type="file" id="pdf-file-input-modal" accept=".pdf" hidden/>
             <div class="pdf-drop-icon">📄</div>
@@ -545,15 +486,9 @@
             <span id="pdf-parsed-count" class="pdf-count-badge"></span>
           </div>
         </div>
-
-        <!-- Dấu + -->
         <div class="pdf-upload-sep">+</div>
-
-        <!-- Cột phải: File đáp án -->
         <div class="pdf-upload-col">
-          <div class="pdf-col-label">
-            🔑 File đáp án <span class="pdf-col-optional">(tuỳ chọn)</span>
-          </div>
+          <div class="pdf-col-label">🔑 File đáp án <span class="pdf-col-optional">(tuỳ chọn)</span></div>
           <div class="pdf-drop-zone pdf-ans-zone" id="pdf-ans-drop-zone">
             <input type="file" id="pdf-ans-file-input" accept=".pdf" hidden/>
             <div class="pdf-drop-icon">🔑</div>
@@ -565,41 +500,31 @@
             <span id="pdf-ans-badge" class="pdf-count-badge pdf-ans-badge hidden"></span>
           </div>
         </div>
-
       </div>
 
-      <!-- Preview area -->
       <div id="pdf-preview-area" class="hidden">
-        <!-- Stats -->
         <div class="pdf-stats-row">
           <div class="pdf-stat-card tf">Đúng/Sai <span id="pdf-stat-tf">0</span></div>
           <div class="pdf-stat-card mcq">Trắc nghiệm <span id="pdf-stat-mcq">0</span></div>
           <div class="pdf-stat-card match">Ghép cột <span id="pdf-stat-match">0</span></div>
           <div class="pdf-stat-card short">Trả lời ngắn <span id="pdf-stat-short">0</span></div>
         </div>
-
-        <!-- Select controls -->
         <div class="pdf-select-row">
-          <span class="pdf-select-label">Chọn câu để thêm vào ngân hàng:</span>
+          <span class="pdf-select-label">Chọn câu để thêm:</span>
           <button class="pdf-sel-btn" id="pdf-select-all">Chọn tất cả</button>
           <button class="pdf-sel-btn" id="pdf-deselect-all">Bỏ chọn</button>
         </div>
-
-        <!-- Preview list -->
         <div class="pdf-preview-list" id="pdf-preview-list"></div>
       </div>
-
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" id="pdf-modal-cancel">Huỷ</button>
-      <button class="modal-confirm pdf-confirm-btn" id="pdf-modal-confirm">
-        ✅ Thêm vào ngân hàng
-      </button>
+      <button class="modal-confirm pdf-confirm-btn" id="pdf-modal-confirm">✅ Thêm vào ngân hàng</button>
     </div>
   </div>
 </div>
 
-<!-- Toast thông báo -->
+<!-- Toast -->
 <div id="pdf-import-toast" class="pdf-toast hidden"></div>
 
 <script src="exam.js"></script>
