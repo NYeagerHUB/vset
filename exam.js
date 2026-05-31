@@ -1547,6 +1547,8 @@ async function startSetExam(id) {
     if (sel) sel.value = `set:${id}`;
   }, 50);
 }
+
+function renameSet(id) {
   const s = sets.find(x => x.id === id);
   if (!s) return;
   const newName = prompt('Tên mới cho bộ đề:', s.name);
