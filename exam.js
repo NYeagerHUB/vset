@@ -592,7 +592,7 @@ function countByType() {
 // ══════════════════════════════════════════
 //  LOGIN / FILE INPUT
 // ══════════════════════════════════════════
-function handleLogin() {
+async function handleLogin() {
   const user    = document.getElementById('login-username').value.trim();
   const pass    = document.getElementById('login-password').value.trim();
   const subject = document.getElementById('login-subject').value;
