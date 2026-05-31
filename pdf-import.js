@@ -517,7 +517,10 @@ function mergeAnswers(questions, answerMap) {
 let _parsedQuestions = [];  // từ file đề
 let _parsedAnswers   = new Map(); // từ file đáp án
 
-function openPdfImportModal() {
+function openPdfImportModal(forSets = false) {
+  // Đặt mode trước khi reset UI
+  if (typeof _setsImportMode !== 'undefined') _setsImportMode = forSets;
+
   document.getElementById('pdf-import-modal').classList.remove('hidden');
   document.getElementById('pdf-preview-area').classList.add('hidden');
   document.getElementById('pdf-import-status').textContent = '';
@@ -531,19 +534,14 @@ function openPdfImportModal() {
   _pdfPageCanvases = [];
   _pdfDoc = null;
 
-  // Cập nhật tiêu đề modal theo mode
+  // Cập nhật tiêu đề và nút theo mode
   const titleEl = document.querySelector('#pdf-import-modal .modal-header h3');
   if (titleEl) {
-    titleEl.textContent = (typeof _setsImportMode !== 'undefined' && _setsImportMode)
-      ? '📂 Nhập đề vào Kho đề'
-      : '📄 Nhập đề thi từ PDF';
+    titleEl.textContent = forSets ? '📂 Nhập đề vào Kho đề' : '📄 Nhập đề thi từ PDF';
   }
-  // Cập nhật nút confirm
   const confirmBtn = document.getElementById('pdf-modal-confirm');
   if (confirmBtn) {
-    confirmBtn.textContent = (typeof _setsImportMode !== 'undefined' && _setsImportMode)
-      ? '📂 Lưu vào kho đề'
-      : '✅ Thêm vào ngân hàng';
+    confirmBtn.textContent = forSets ? '📂 Lưu vào kho đề' : '✅ Thêm vào ngân hàng';
   }
 }
 
@@ -771,7 +769,7 @@ function confirmPdfImport() {
   closePdfImportModal();
 
   // ── Lưu vào kho đề (nếu đang ở chế độ sets) ──
-  if (typeof _setsImportMode !== 'undefined' && _setsImportMode) {
+  if (_setsImportMode) {
     _setsImportMode = false;
     openSetNameModal('Đề PDF mới', config.time, toAdd);
     return;
@@ -1026,7 +1024,7 @@ function initCropModal() {
 function initPdfImport() {
   initCropModal();
 
-  document.getElementById('bank-pdf-btn').addEventListener('click', openPdfImportModal);
+  document.getElementById('bank-pdf-btn').addEventListener('click', () => openPdfImportModal(false));
   document.getElementById('pdf-modal-close').addEventListener('click', closePdfImportModal);
   document.getElementById('pdf-modal-cancel').addEventListener('click', closePdfImportModal);
 

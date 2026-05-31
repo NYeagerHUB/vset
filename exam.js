@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sets-file-input').addEventListener('change', handleSetsImport);
   document.getElementById('sets-pdf-btn').addEventListener('click', () => {
     _setsImportMode = true;
-    openPdfImportModal();
+    openPdfImportModal(true);
   });
   document.getElementById('sets-refresh-btn').addEventListener('click', () => {
     _invalidateSetsListCache();
