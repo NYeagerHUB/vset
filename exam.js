@@ -367,11 +367,11 @@ async function syncSetsFromFirebase() {
   try {
     const list = await fetchSetsList();
     // Giữ lại questions đã có local, merge với metadata từ Firebase
+    const oldSets = sets;
     sets = list.map(s => {
-      const existing = sets.find(x => x.id === s.id);
+      const existing = oldSets.find(x => x.id === s.id);
       return {
         ...s,
-        // Giữ questions local nếu có (tránh mất data)
         questions: existing?.questions || s.questions || [],
         _fromFirebase: true
       };
@@ -382,6 +382,19 @@ async function syncSetsFromFirebase() {
     console.warn('[Firebase] sync failed:', e.message);
     return false;
   }
+}
+
+// ── Fetch full questions cho set khi cần thi (người khác vào) ──
+async function ensureSetQuestions(setId) {
+  const s = sets.find(x => x.id === setId);
+  if (!s) return null;
+  // Đã có questions local
+  if (s.questions && s.questions.length > 0) return s.questions;
+  // Fetch từ Firebase
+  const full = await fetchSetFull(setId);
+  s.questions = full.questions;
+  saveSets();
+  return s.questions;
 }
 
 async function _initFirebaseSync(forceRefresh = false) {
@@ -605,12 +618,18 @@ function handleLogin() {
       drawErr.classList.remove('hidden');
       return;
     }
-    // Lấy questions: ưu tiên _cachedQuestions (đã fetch từ Firebase), rồi questions local
-    const questions = examSet._cachedQuestions || examSet.questions;
+    // Lấy questions: local hoặc fetch từ Firebase
+    let questions = examSet.questions || examSet._cachedQuestions;
     if (!questions || !questions.length) {
-      drawErr.textContent = '⚠️ Đề chưa tải xong. Vui lòng thử lại.';
+      drawErr.textContent = '⏳ Đang tải câu hỏi từ Firebase...';
       drawErr.classList.remove('hidden');
-      return;
+      try {
+        questions = await ensureSetQuestions(setId);
+        drawErr.classList.add('hidden');
+      } catch(e) {
+        drawErr.textContent = '⚠️ Không tải được câu hỏi: ' + e.message;
+        return;
+      }
     }
     startExam({
       title: `${examSet.name} – ${user}`,
@@ -1491,17 +1510,15 @@ async function startSetExam(id) {
   const s = sets.find(x => x.id === id);
   if (!s) return;
 
-  // Nếu set từ Firebase và chưa có questions local → fetch trước
-  if (s._fromFirebase && (!s.questions || !s.questions.length)) {
-    setFbStatus('uploading', `⬇️ Đang tải đề "${s.name}"...`);
+  // Fetch questions nếu chưa có (người khác vào lần đầu)
+  if (!s.questions || !s.questions.length) {
+    setFbStatus('uploading', `⬇️ Đang tải "${s.name}"...`);
     try {
-      const fullSet = await fetchSetFull(id);
-      // Lưu questions vào set local tạm thời (không saveSets để tránh nặng)
-      s._cachedQuestions = fullSet.questions;
+      s._cachedQuestions = await ensureSetQuestions(id);
       setFbStatus('ok', '☁️ Firebase đã đồng bộ');
     } catch(e) {
       setFbStatus('error', '⚠️ Không tải được đề');
-      showToast('⚠️ Không tải được đề từ Firebase: ' + e.message, true);
+      showToast('⚠️ Không tải được đề: ' + e.message, true);
       return;
     }
   }

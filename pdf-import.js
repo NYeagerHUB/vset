@@ -766,11 +766,12 @@ function confirmPdfImport() {
   const withAns = toAdd.filter(checkParsedAnswer).length;
   const withImg = toAdd.filter(q => q.image).length;
 
+  // Đọc mode TRƯỚC khi đóng modal (closePdfImportModal reset _setsImportMode)
+  const savingToSets = !!_setsImportMode;
   closePdfImportModal();
 
-  // ── Lưu vào kho đề (nếu đang ở chế độ sets) ──
-  if (_setsImportMode) {
-    _setsImportMode = false;
+  // ── Lưu vào kho đề ──
+  if (savingToSets) {
     openSetNameModal('Đề PDF mới', config.time, toAdd);
     return;
   }
