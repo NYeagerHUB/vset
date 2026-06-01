@@ -650,6 +650,9 @@ function openPdfImportModal(forSets = false) {
 function closePdfImportModal() {
   document.getElementById('pdf-import-modal').classList.add('hidden');
   if (typeof _setsImportMode !== 'undefined') _setsImportMode = false;
+  // Cleanup JSON+PDF mode state
+  if (typeof _resetJspdfState === 'function') _resetJspdfState();
+}
 }
 
 // ── Xử lý file ĐỀ ──
@@ -976,6 +979,9 @@ function confirmPdfImport() {
 
   // ── Lưu vào kho đề → mở modal đặt tên + môn ──
   if (savingToSets) {
+    if (typeof openSetNameModal !== 'function') {
+      alert('Lỗi: openSetNameModal không tồn tại'); return;
+    }
     openSetNameModal('Đề PDF mới', (typeof config !== 'undefined' ? config.time : 90), toAdd, 'Toán');
     return;
   }
@@ -1546,14 +1552,13 @@ function initJspdfMode() {
   document.getElementById('jspdf-pdf-input').addEventListener('change', handleJspdfPdfSelect);
 }
 
-// ── Reset khi đóng modal ──
-const _origClosePdfImportModal = closePdfImportModal;
-function closePdfImportModal() {
-  _origClosePdfImportModal();
+// ── Reset khi đóng modal (JSON+PDF mode cleanup) ──
+// KHÔNG override closePdfImportModal để tránh infinite recursion
+// Thay vào đó hook vào sự kiện đóng modal
+function _resetJspdfState() {
   _jspdfQuestions  = [];
   _jspdfPdfLoaded  = false;
   _questionPageMap = {};
-  // Reset status json-pdf
   ['jspdf-json-status','jspdf-pdf-status'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.textContent = ''; el.className = 'pdf-status-text'; }
@@ -1567,8 +1572,10 @@ function closePdfImportModal() {
   document.querySelectorAll('.imt-tab').forEach(b =>
     b.classList.toggle('active', b.dataset.mode === 'pdf')
   );
-  document.getElementById('import-mode-pdf').classList.remove('hidden');
-  document.getElementById('import-mode-json-pdf').classList.add('hidden');
+  const modePdf  = document.getElementById('import-mode-pdf');
+  const modeJson = document.getElementById('import-mode-json-pdf');
+  if (modePdf)  modePdf.classList.remove('hidden');
+  if (modeJson) modeJson.classList.add('hidden');
 }
 
 // ── Gắn vào initPdfImport ──
