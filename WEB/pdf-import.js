@@ -653,7 +653,6 @@ function closePdfImportModal() {
   // Cleanup JSON+PDF mode state
   if (typeof _resetJspdfState === 'function') _resetJspdfState();
 }
-}
 
 // ── Xử lý file ĐỀ ──
 async function handlePdfFileSelect(e) {
