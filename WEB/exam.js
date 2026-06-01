@@ -1076,46 +1076,65 @@ function closeSubmitModal() { document.getElementById('submit-modal').classList.
 function submitExam() { clearInterval(timerInterval); closeSubmitModal(); showResults(); }
 
 // ══════════════════════════════════════════
-//  SCORING
+//  SCORING — Chuẩn V-SAT 2025
+//  Tổng điểm tối đa: 150 điểm
+//  - Đúng/Sai (9 câu × tối đa 6đ):
+//      1/4 đúng = 1đ, 2/4 = 2đ, 3/4 = 3đ, 4/4 = 6đ
+//  - Trắc nghiệm (6 câu × 6đ): đúng = 6đ, sai = 0đ
+//  - Ghép cột (5 câu × 6đ): mỗi tiểu mục đúng = 1.5đ (tối đa 6đ)
+//  - Trả lời ngắn (5 câu × 6đ): đúng = 6đ, sai = 0đ
 // ══════════════════════════════════════════
 function calcScore(q, studentAns, keyAns) {
-  if (q.type==='truefalse') {
+
+  // ── Đúng/Sai ──
+  if (q.type === 'truefalse') {
     if (!Array.isArray(keyAns)) return null;
-    if (!keyAns.some(v => v==='D'||v==='S')) return null;
+    if (!keyAns.some(v => v === 'D' || v === 'S')) return null;
     const n = keyAns.length;
     let correct = 0;
-    for (let si=0; si<n; si++) {
+    for (let si = 0; si < n; si++) {
       const student = Array.isArray(studentAns) ? studentAns[si] : null;
-      if (student!==null && student!==undefined && keyAns[si]!==null && student===keyAns[si]) correct++;
+      if (student !== null && student !== undefined &&
+          keyAns[si] !== null && student === keyAns[si]) correct++;
     }
-    if (correct===n) return 6;
-    if (correct===3) return 3;
-    if (correct===2) return 2;
-    if (correct===1) return 1;
+    if (correct === 4) return 6;
+    if (correct === 3) return 3;
+    if (correct === 2) return 2;
+    if (correct === 1) return 1;
     return 0;
   }
-  if (q.type==='mcq') {
-    if (keyAns===null||keyAns===undefined) return null;
-    if (studentAns===null||studentAns===undefined) return 0;
-    return Number(studentAns)===Number(keyAns) ? 6 : 0;
+
+  // ── Trắc nghiệm ──
+  if (q.type === 'mcq') {
+    if (keyAns === null || keyAns === undefined) return null;
+    if (studentAns === null || studentAns === undefined) return 0;
+    return Number(studentAns) === Number(keyAns) ? 6 : 0;
   }
-  if (q.type==='matching') {
-    if (!Array.isArray(keyAns)||!keyAns.some(v=>v!==null&&v!==undefined)) return null;
+
+  // ── Ghép cột: mỗi tiểu mục đúng = 1.5đ ──
+  if (q.type === 'matching') {
+    if (!Array.isArray(keyAns) || !keyAns.some(v => v !== null && v !== undefined)) return null;
     if (!Array.isArray(studentAns)) return 0;
     const n = keyAns.length;
     let correct = 0;
-    for (let li=0; li<n; li++) {
-      if (studentAns[li]!==null&&studentAns[li]!==undefined&&keyAns[li]!==null&&keyAns[li]!==undefined&&Number(studentAns[li])===Number(keyAns[li])) correct++;
+    for (let li = 0; li < n; li++) {
+      if (studentAns[li] !== null && studentAns[li] !== undefined &&
+          keyAns[li] !== null && keyAns[li] !== undefined &&
+          Number(studentAns[li]) === Number(keyAns[li])) correct++;
     }
-    return Math.floor((correct/n)*6);
+    // 1.5đ/tiểu mục, tối đa 6đ
+    return Math.min(correct * 1.5, 6);
   }
-  if (q.type==='short') {
-    if (keyAns===null||keyAns===undefined||String(keyAns).trim()==='') return null;
-    if (studentAns===null||studentAns===undefined) return 0;
-    const g = String(studentAns).trim().toLowerCase().replace(/,/g,'.');
-    const e = String(keyAns).trim().toLowerCase().replace(/,/g,'.');
-    return g===e ? 6 : 0;
+
+  // ── Trả lời ngắn ──
+  if (q.type === 'short') {
+    if (keyAns === null || keyAns === undefined || String(keyAns).trim() === '') return null;
+    if (studentAns === null || studentAns === undefined) return 0;
+    const g = String(studentAns).trim().toLowerCase().replace(/,/g, '.');
+    const e = String(keyAns).trim().toLowerCase().replace(/,/g, '.');
+    return g === e ? 6 : 0;
   }
+
   return 0;
 }
 
@@ -1156,13 +1175,17 @@ function showResults() {
 }
 
 function renderScore() {
-  let total = 0;
+  let total = 0, possible = 0;
   examData.questions.forEach((q,i) => {
     const pts = calcScore(q, answers[i], answerKey[i]);
-    if (pts!==null) total+=pts;
+    if (pts !== null) { total += pts; possible += 6; }
   });
-  document.getElementById('result-score').textContent =
-    hasAnyKey() ? `${total} điểm` : '– (chưa có đáp án)';
+  const scoreEl = document.getElementById('result-score');
+  if (hasAnyKey()) {
+    scoreEl.textContent = `${total} / ${possible} điểm`;
+  } else {
+    scoreEl.textContent = '– (chưa có đáp án)';
+  }
 }
 
 function toggleAnswerDisplay() {
