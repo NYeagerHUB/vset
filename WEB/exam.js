@@ -340,7 +340,7 @@ async function _initFirebaseSync(forceRefresh=false) {
 // Danh sách Gmail được phép vào dashboard
 // Thêm email của bạn vào đây
 const ALLOWED_EMAILS = [
-  'thiennhan@gmail.com',        // thay bằng email thực của bạn
+  'tn2431814@gmail.com',        // thay bằng email thực của bạn
   'nyeagerhub@gmail.com',
 ];
 
@@ -358,8 +358,14 @@ function initAuthScreen() {
   const authError   = document.getElementById('auth-error');
   const authLoading = document.getElementById('auth-loading');
 
+  // Ẩn nút, hiện loading khi đang check session
+  authBtn.style.display = 'none';
+  authLoading.textContent = 'Đang kiểm tra đăng nhập...';
+  authLoading.classList.remove('hidden');
+
   authBtn.addEventListener('click', async () => {
     authError.classList.add('hidden');
+    authLoading.textContent = 'Đang đăng nhập...';
     authLoading.classList.remove('hidden');
     authBtn.disabled = true;
     try {
@@ -367,13 +373,12 @@ function initAuthScreen() {
       const email  = result.user.email;
       if (!isEmailAllowed(email)) {
         await _auth.signOut();
-        authError.textContent = `Tài khoản ${email} không có quyền truy cập.`;
+        authError.textContent = `Tài khoản ${email} không có quyền truy cập.Vui lòng xin dev để hỏi quyền hoặc không=))`;
         authError.classList.remove('hidden');
         authLoading.classList.add('hidden');
         authBtn.disabled = false;
         return;
       }
-      // Đăng nhập thành công → vào dashboard
       onAuthSuccess(result.user);
     } catch(e) {
       if (e.code !== 'auth/popup-closed-by-user') {
@@ -385,12 +390,16 @@ function initAuthScreen() {
     }
   });
 
-  // Kiểm tra session hiện tại
-  _auth.onAuthStateChanged(user => {
+  // Firebase tự restore session — unsubscribe sau lần check đầu tiên
+  const unsubscribe = _auth.onAuthStateChanged(user => {
+    unsubscribe(); // chỉ check 1 lần khi load
     if (user && isEmailAllowed(user.email)) {
+      // Có session hợp lệ → vào dashboard luôn, không cần đăng nhập lại
       onAuthSuccess(user);
     } else {
+      // Không có session → hiện nút đăng nhập
       authLoading.classList.add('hidden');
+      authBtn.style.display = '';
       showScreen('auth-screen');
     }
   });
