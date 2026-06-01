@@ -1702,6 +1702,8 @@ async function loadHistoryFromFirestore() {
     renderSets(); // cập nhật trạng thái đã làm/chưa làm
   } catch(e) { console.warn('[Firestore] loadHistory:', e.message); }
 }
+
+function renderHistory() {
   const hist = loadHistory();
   const emptyEl = document.getElementById('hist-empty');
   const tbody   = document.getElementById('hist-tbody');
