@@ -339,17 +339,10 @@ async function _initFirebaseSync(forceRefresh=false) {
 
 // Danh sách Gmail được phép vào dashboard
 // Thêm email của bạn vào đây
-const ALLOWED_EMAILS = [
-  'tn2431814@gmail.com',
-  'nyeagerhub@gmail.com',
-  'minhchau.meichar@gmail.com',
-];
+const ALLOWED_EMAILS = [];  // Mở cho tất cả Google account
 
 function isEmailAllowed(email) {
-  if (!email) return false;
-  // Cho phép tất cả nếu ALLOWED_EMAILS rỗng
-  if (!ALLOWED_EMAILS.length) return true;
-  return ALLOWED_EMAILS.some(e => e.toLowerCase() === email.toLowerCase());
+  return !!email; // Cho phép tất cả
 }
 
 function initAuthScreen() {
@@ -416,7 +409,7 @@ function onAuthSuccess(user) {
       <span class="dash-username">${escH(user.displayName || user.email)}</span>`;
   }
   // Hiện nút admin nếu là admin
-  if (user.email === ALLOWED_EMAILS[0]) {
+  if (user.email === 'tn2431814@gmail.com') {
     const adminBtn = document.getElementById('dnav-admin');
     if (adminBtn) adminBtn.classList.remove('hidden');
   }
@@ -2550,7 +2543,7 @@ async function updatePresenceScreen(screenId) {
 let _adminUnsubscribe = null;
 
 async function renderAdminPanel() {
-  if (!_currentUser || _currentUser.email !== ALLOWED_EMAILS[0]) return;
+  if (!_currentUser || _currentUser.email !== 'tn2431814@gmail.com') return;
   if (!_db) return;
 
   const container = document.getElementById('admin-presence-list');
