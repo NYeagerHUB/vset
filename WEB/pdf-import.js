@@ -443,6 +443,15 @@ function parseVSATAnswers(rawText) {
       continue;
     }
 
+    // ── 2b. TF: "Đúng Sai Sai Đúng" (viết đầy đủ — format V-SAT lời giải) ──
+    const tfFull = block.match(/(?:^|[\s\n\r])((Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai))(?:\s|[.\n\r]|$)/im);
+    if (tfFull) {
+      const answers = [tfFull[2],tfFull[3],tfFull[4],tfFull[5]]
+        .map(c => c.toLowerCase() === 'đúng' ? 'D' : 'S');
+      answerMap.set(qNum, { type: 'truefalse', answers });
+      continue;
+    }
+
     // ── 3. TF format THPT: "» Chọn ĐÚNG/SAI" rải rác ──
     const tfScattered = [...block.matchAll(/(?:»\s*)?Chọn\s+(ĐÚNG|SAI|đúng|sai)\b/gi)];
     if (tfScattered.length >= 2) {
@@ -495,6 +504,18 @@ function parseVSATAnswers(rawText) {
     if (!answerMap.has(qNum)) {
       const answers = [tfm[2], tfm[3], tfm[4], tfm[5]]
         .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
+      answerMap.set(qNum, { type: 'truefalse', answers });
+    }
+  }
+
+  // ── FALLBACK 2: "Đúng Sai Đúng Sai" viết đầy đủ (V-SAT lời giải) ──
+  const tfFullFallback = /(?:»\s*)?Câu\s+(\d+)[^]*?(Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai)(?:\s|[.\n\r]|$)/gi;
+  let tfm2;
+  while ((tfm2 = tfFullFallback.exec(text)) !== null) {
+    const qNum = parseInt(tfm2[1]);
+    if (!answerMap.has(qNum)) {
+      const answers = [tfm2[2], tfm2[3], tfm2[4], tfm2[5]]
+        .map(c => c.toLowerCase() === 'đúng' ? 'D' : 'S');
       answerMap.set(qNum, { type: 'truefalse', answers });
     }
   }
