@@ -415,6 +415,11 @@ function onAuthSuccess(user) {
       <img src="${user.photoURL||''}" class="dash-avatar" onerror="this.style.display='none'"/>
       <span class="dash-username">${escH(user.displayName || user.email)}</span>`;
   }
+  // Hiện nút admin nếu là admin
+  if (user.email === ALLOWED_EMAILS[0]) {
+    const adminBtn = document.getElementById('dnav-admin');
+    if (adminBtn) adminBtn.classList.remove('hidden');
+  }
   showScreen('dashboard-screen');
   renderSets();
   renderBankList();
@@ -422,6 +427,7 @@ function onAuthSuccess(user) {
   renderHistory();
   populateSubjectFilters();
   _initFirebaseSync();
+  startPresenceTracking(user);
 }
 
 // ══════════════════════════════════════════
@@ -489,6 +495,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirm('Xóa toàn bộ lịch sử làm bài?')) { saveHistory([]); renderHistory(); }
   });
 
+  // Admin panel
+  document.getElementById('admin-refresh-btn')?.addEventListener('click', renderAdminPanel);
+
   // Bank edit modal
   document.getElementById('bank-edit-close').addEventListener('click', closeBankEdit);
   document.getElementById('bank-edit-cancel').addEventListener('click', closeBankEdit);
@@ -548,6 +557,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (id==='exam-screen') setTimeout(initScrollObserver, 150);
+  updatePresenceScreen(id);
 }
 function switchDashPanel(panelId) {
   document.querySelectorAll('.dnav').forEach(b => b.classList.toggle('active', b.dataset.panel===panelId));
@@ -556,6 +566,8 @@ function switchDashPanel(panelId) {
   if (panelId==='panel-bank')    { populateSubjectFilters(); renderBankList(); }
   if (panelId==='panel-config')  renderConfigTab();
   if (panelId==='panel-history') renderHistory();
+  if (panelId==='panel-admin')   renderAdminPanel();
+  updatePresenceScreen('dashboard:' + panelId);
 }
 
 function gotoLogin() {
@@ -2459,4 +2471,185 @@ async function sqeditLoadPdfForCrop(input) {
   } catch(e) {
     statusEl.textContent = '❌ Lỗi: ' + e.message;
   }
+}
+
+// ══════════════════════════════════════════
+//  PRESENCE TRACKING
+// ══════════════════════════════════════════
+let _presenceInterval = null;
+let _presenceUnsubscribe = null;
+
+const SCREEN_LABELS = {
+  'auth-screen':    '🔐 Màn hình đăng nhập',
+  'dashboard-screen': '🏠 Dashboard',
+  'login-screen':   '📝 Chuẩn bị thi',
+  'exam-screen':    '📖 Đang thi',
+  'result-screen':  '📊 Xem kết quả',
+  'dashboard:panel-sets':    '🏠 Dashboard › Kho đề',
+  'dashboard:panel-bank':    '🏠 Dashboard › Ngân hàng',
+  'dashboard:panel-config':  '🏠 Dashboard › Cấu hình',
+  'dashboard:panel-history': '🏠 Dashboard › Lịch sử',
+  'dashboard:panel-admin':   '🏠 Dashboard › Admin',
+};
+
+function _presenceDoc() {
+  if (!_db || !_currentUser) return null;
+  return _db.collection('presence').doc(_currentUser.uid);
+}
+
+async function startPresenceTracking(user) {
+  if (!_db) return;
+  const doc = _presenceDoc();
+  if (!doc) return;
+
+  const data = {
+    uid:         user.uid,
+    email:       user.email,
+    displayName: user.displayName || user.email,
+    photoURL:    user.photoURL || '',
+    currentScreen: 'dashboard-screen',
+    lastSeen:    firebase.firestore.FieldValue.serverTimestamp(),
+    online:      true,
+  };
+  try { await doc.set(data, { merge: true }); } catch(e) {}
+
+  // Heartbeat mỗi 30s
+  clearInterval(_presenceInterval);
+  _presenceInterval = setInterval(async () => {
+    try {
+      await doc.update({
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        online: true,
+      });
+    } catch(e) {}
+  }, 30000);
+
+  // Đánh dấu offline khi đóng tab
+  window.addEventListener('beforeunload', () => {
+    try {
+      doc.update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+    } catch(e) {}
+  });
+}
+
+async function updatePresenceScreen(screenId) {
+  const doc = _presenceDoc();
+  if (!doc) return;
+  try {
+    await doc.update({
+      currentScreen: screenId,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+      online: true,
+    });
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+//  ADMIN PANEL — Render danh sách online
+// ══════════════════════════════════════════
+let _adminUnsubscribe = null;
+
+async function renderAdminPanel() {
+  if (!_currentUser || _currentUser.email !== ALLOWED_EMAILS[0]) return;
+  if (!_db) return;
+
+  const container = document.getElementById('admin-presence-list');
+  if (!container) return;
+  container.innerHTML = '<div class="admin-loading">⏳ Đang tải...</div>';
+
+  // Hủy listener cũ nếu có
+  if (_adminUnsubscribe) { _adminUnsubscribe(); _adminUnsubscribe = null; }
+
+  // Realtime listener
+  _adminUnsubscribe = _db.collection('presence')
+    .onSnapshot(async snap => {
+      const now = Date.now();
+      const users = snap.docs.map(d => d.data());
+
+      if (!users.length) {
+        container.innerHTML = '<div class="admin-empty">Chưa có ai đăng nhập.</div>';
+        return;
+      }
+
+      // Lấy lịch sử thi của từng user
+      const histPromises = users.map(u =>
+        _db.collection('users').doc(u.uid).collection('history')
+          .orderBy('date', 'desc').limit(3).get()
+          .then(s => ({ uid: u.uid, hist: s.docs.map(d => d.data()) }))
+          .catch(() => ({ uid: u.uid, hist: [] }))
+      );
+      const histResults = await Promise.all(histPromises);
+      const histMap = {};
+      histResults.forEach(r => { histMap[r.uid] = r.hist; });
+
+      // Sort: online trước, rồi theo lastSeen
+      users.sort((a, b) => {
+        const aOnline = _isOnline(a, now);
+        const bOnline = _isOnline(b, now);
+        if (aOnline !== bOnline) return bOnline ? 1 : -1;
+        const aT = a.lastSeen?.toMillis?.() || 0;
+        const bT = b.lastSeen?.toMillis?.() || 0;
+        return bT - aT;
+      });
+
+      container.innerHTML = users.map(u => _renderPresenceCard(u, histMap[u.uid] || [], now)).join('');
+    }, err => {
+      container.innerHTML = `<div class="admin-empty">⚠️ Lỗi: ${err.message}</div>`;
+    });
+}
+
+function _isOnline(u, now) {
+  if (!u.online) return false;
+  const lastMs = u.lastSeen?.toMillis?.() || 0;
+  return (now - lastMs) < 2 * 60 * 1000; // 2 phút
+}
+
+function _renderPresenceCard(u, hist, now) {
+  const online = _isOnline(u, now);
+  const lastMs = u.lastSeen?.toMillis?.() || 0;
+  const lastStr = lastMs ? _timeAgo(lastMs, now) : 'Chưa rõ';
+  const screenLabel = SCREEN_LABELS[u.currentScreen] || u.currentScreen || '–';
+
+  const histHtml = hist.length
+    ? hist.map(h => {
+        const d = new Date(h.date);
+        const ds = `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const score = h.possible > 0 ? `${h.score}/${h.possible}đ` : '–';
+        return `<div class="apc-hist-row">
+          <span class="apc-hist-title">${escH((h.title||h.subject||'Bài thi').slice(0,30))}</span>
+          <span class="apc-hist-score">${score}</span>
+          <span class="apc-hist-date">${ds}</span>
+        </div>`;
+      }).join('')
+    : '<div class="apc-hist-empty">Chưa có lịch sử thi</div>';
+
+  return `<div class="admin-presence-card ${online ? 'apc-online' : 'apc-offline'}">
+    <div class="apc-top">
+      <div class="apc-avatar-wrap">
+        <img class="apc-avatar" src="${escH(u.photoURL||'')}" onerror="this.style.display='none'"/>
+        <span class="apc-dot ${online ? 'dot-online' : 'dot-offline'}"></span>
+      </div>
+      <div class="apc-info">
+        <div class="apc-name">${escH(u.displayName||u.email)}</div>
+        <div class="apc-email">${escH(u.email)}</div>
+        <div class="apc-screen">${escH(screenLabel)}</div>
+      </div>
+      <div class="apc-status">
+        <span class="apc-badge ${online ? 'badge-online' : 'badge-offline'}">${online ? '● Online' : '○ Offline'}</span>
+        <div class="apc-lastseen">${lastStr}</div>
+      </div>
+    </div>
+    <div class="apc-hist">
+      <div class="apc-hist-label">📋 Lịch sử thi gần nhất</div>
+      ${histHtml}
+    </div>
+  </div>`;
+}
+
+function _timeAgo(ms, now) {
+  const diff = now - ms;
+  if (diff < 60000)   return 'Vừa xong';
+  if (diff < 3600000) return `${Math.floor(diff/60000)} phút trước`;
+  if (diff < 86400000) return `${Math.floor(diff/3600000)} giờ trước`;
+  return `${Math.floor(diff/86400000)} ngày trước`;
 }
