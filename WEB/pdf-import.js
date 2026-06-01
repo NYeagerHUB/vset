@@ -503,7 +503,74 @@ function parseVSATAnswers(rawText) {
 }
 
 /**
- * Ghép đáp án vào mảng câu hỏi đã parse từ đề
+ * normalizeAIStudioJSON(questions)
+ * Chuẩn hóa JSON từ Google AI Studio về format web dùng:
+ *   - TF: "T"→"D", "F"→"S"
+ *   - MCQ: right["Ⓓ"] → answer: 3
+ *   - Matching: statements["1 - A, 2 - C"] → answers: [0, 2, ...]
+ */
+function normalizeAIStudioJSON(questions) {
+  const circledMap = {'Ⓐ':0,'Ⓑ':1,'Ⓒ':2,'Ⓓ':3,'Ⓔ':4,'Ⓕ':5,
+                      'A':0,'B':1,'C':2,'D':3,'E':4,'F':5};
+
+  return questions.map(q => {
+    const out = { ...q };
+
+    // ── Truefalse: "T"→"D", "F"→"S" ──
+    if (q.type === 'truefalse' && Array.isArray(q.answers)) {
+      out.answers = q.answers.map(a => {
+        if (a === 'T' || a === 'Đ' || a === 'D') return 'D';
+        if (a === 'F' || a === 'S')               return 'S';
+        return a; // null hoặc giá trị khác giữ nguyên
+      });
+    }
+
+    // ── MCQ: lấy đáp án từ right[] hoặc answer ──
+    if (q.type === 'mcq') {
+      // right: ["Ⓓ"] hoặc answer: "3" hoặc answer: "D"
+      if (Array.isArray(q.right) && q.right.length > 0) {
+        const raw = q.right[0].trim();
+        const idx = circledMap[raw] ?? circledMap[raw.replace(/[^A-FⒶ-Ⓕ]/g,'')] ?? null;
+        if (idx !== null) out.answer = String(idx);
+      } else if (q.answer !== null && q.answer !== undefined) {
+        const raw = String(q.answer).trim();
+        // "D" → 3, "Ⓓ" → 3, "3" → giữ nguyên
+        const idx = circledMap[raw];
+        if (idx !== undefined) out.answer = String(idx);
+      }
+    }
+
+    // ── Matching: parse "1 - A, 2 - C, 3 - B, 4 - F" từ statements[0] ──
+    if (q.type === 'matching') {
+      const src = Array.isArray(q.statements) ? q.statements[0] : null;
+      if (src && typeof src === 'string' && /\d\s*[-–]\s*[A-FⒶ-Ⓕ]/i.test(src)) {
+        const pairs = [...src.matchAll(/(\d+)\s*[-–]\s*([A-FⒶ-Ⓕ])/gi)];
+        if (pairs.length >= 2) {
+          const answers = new Array(q.left?.length || 4).fill(null);
+          pairs.forEach(p => {
+            const pos = parseInt(p[1]) - 1;
+            const letter = p[2].trim();
+            const val = circledMap[letter] ?? (letter.toUpperCase().charCodeAt(0) - 65);
+            if (pos >= 0 && pos < answers.length) answers[pos] = val;
+          });
+          out.answers = answers;
+          out.statements = []; // xóa statements giả
+        }
+      }
+      // Chuẩn hóa right[]: bỏ ký tự Ⓐ Ⓑ... chỉ giữ text
+      if (Array.isArray(q.right)) {
+        out.right = q.right.map(r =>
+          r.replace(/^[ⒶⒷⒸⒹⒺⒻA-F]\s*/i, '').trim()
+        );
+      }
+    }
+
+    return out;
+  });
+}
+
+/**
+ * Ghép đáp án từ PDF vào câu hỏi đã parse
  */
 function mergeAnswers(questions, answerMap) {
   return questions.map((q, idx) => {
@@ -1278,7 +1345,9 @@ async function handleJspdfJsonSelect(e) {
 
     // Gán id nếu thiếu
     qs.forEach((q, i) => { if (!q.id) q.id = `q${i+1}`; });
-    _jspdfQuestions = qs;
+
+    // Chuẩn hóa format AI Studio → format web
+    _jspdfQuestions = normalizeAIStudioJSON(qs);
 
     statusEl.textContent = `✅ Đọc được ${qs.length} câu hỏi`;
     statusEl.className = 'pdf-status-text ok';
