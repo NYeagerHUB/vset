@@ -346,70 +346,36 @@ function isEmailAllowed(email) {
 }
 
 function initAuthScreen() {
-  if (!initFirebase()) return;
+  if (!initFirebase()) {
+    // Firebase lỗi → vào thẳng dashboard không cần auth
+    _currentUser = null;
+    onAuthSuccess({ uid: 'guest', email: '', displayName: 'Khách', photoURL: '' });
+    return;
+  }
 
-  const authBtn     = document.getElementById('auth-google-btn');
-  const authError   = document.getElementById('auth-error');
-  const authLoading = document.getElementById('auth-loading');
-
-  // Ẩn nút, hiện loading khi đang check session
-  authBtn.style.display = 'none';
-  authLoading.textContent = 'Đang kiểm tra đăng nhập...';
-  authLoading.classList.remove('hidden');
-
-  authBtn.addEventListener('click', async () => {
-    authError.classList.add('hidden');
-    authLoading.textContent = 'Đang đăng nhập...';
-    authLoading.classList.remove('hidden');
-    authBtn.disabled = true;
-    try {
-      const result = await _auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-      const email  = result.user.email;
-      if (!isEmailAllowed(email)) {
-        await _auth.signOut();
-        authError.textContent = `Tài khoản ${email} không có quyền truy cập.Vui lòng xin dev để hỏi quyền hoặc không=))`;
-        authError.classList.remove('hidden');
-        authLoading.classList.add('hidden');
-        authBtn.disabled = false;
-        return;
-      }
-      onAuthSuccess(result.user);
-    } catch(e) {
-      if (e.code !== 'auth/popup-closed-by-user') {
-        authError.textContent = 'Đăng nhập thất bại: ' + e.message;
-        authError.classList.remove('hidden');
-      }
-      authLoading.classList.add('hidden');
-      authBtn.disabled = false;
-    }
-  });
-
-  // Firebase tự restore session — unsubscribe sau lần check đầu tiên
+  // Tự restore session nếu đã đăng nhập trước đó, không bắt buộc
   const unsubscribe = _auth.onAuthStateChanged(user => {
-    unsubscribe(); // chỉ check 1 lần khi load
-    if (user && isEmailAllowed(user.email)) {
-      // Có session hợp lệ → vào dashboard luôn, không cần đăng nhập lại
+    unsubscribe();
+    if (user) {
       onAuthSuccess(user);
     } else {
-      // Không có session → hiện nút đăng nhập
-      authLoading.classList.add('hidden');
-      authBtn.style.display = '';
-      showScreen('auth-screen');
+      // Không có session → vào thẳng dashboard luôn (không cần đăng nhập)
+      onAuthSuccess({ uid: 'guest_' + Date.now(), email: '', displayName: 'Khách', photoURL: '' });
     }
   });
 }
 
 function onAuthSuccess(user) {
-  _currentUser = user;
+  _currentUser = user && user.email ? user : null;
   // Hiện tên user ở sidebar
   const userEl = document.getElementById('dash-user-info');
-  if (userEl) {
+  if (userEl && user && user.displayName) {
     userEl.innerHTML = `
       <img src="${user.photoURL||''}" class="dash-avatar" onerror="this.style.display='none'"/>
       <span class="dash-username">${escH(user.displayName || user.email)}</span>`;
   }
   // Hiện nút admin nếu là admin
-  if (user.email === 'tn2431814@gmail.com') {
+  if (user && user.email === 'tn2431814@gmail.com') {
     const adminBtn = document.getElementById('dnav-admin');
     if (adminBtn) adminBtn.classList.remove('hidden');
   }
@@ -420,7 +386,7 @@ function onAuthSuccess(user) {
   renderHistory();
   populateSubjectFilters();
   _initFirebaseSync();
-  startPresenceTracking(user);
+  if (_currentUser) startPresenceTracking(_currentUser);
 }
 
 // ══════════════════════════════════════════
@@ -1174,7 +1140,15 @@ function showResults() {
     id:uid(), date:new Date().toISOString(),
     username:studentInfo.username, subject:studentInfo.subject,
     score:total, possible, totalQ:examData.questions.length,
-    answered, title:examData.title
+    answered, title:examData.title,
+    // Lưu chi tiết để đối chiếu đáp án
+    questions: examData.questions.map(q => ({
+      id:q.id, type:q.type, question:q.question,
+      options:q.options, statements:q.statements,
+      left:q.left, right:q.right
+    })),
+    answers:   JSON.parse(JSON.stringify(answers)),
+    answerKey: JSON.parse(JSON.stringify(answerKey)),
   });
   saveHistory(hist.slice(0,200));
   showScreen('result-screen');
@@ -1750,6 +1724,7 @@ function renderHistory() {
     const dateStr = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     const scoreClass = h.possible>0 && h.score===h.possible ? 'hist-score full' : 'hist-score';
     const scoreText  = h.possible>0 ? `${h.score}/${h.possible}` : '–';
+    const hasDetail  = h.questions && h.questions.length > 0;
     return `<tr>
       <td>${i+1}</td>
       <td>${escH(h.username||'GUEST')}</td>
@@ -1757,6 +1732,7 @@ function renderHistory() {
       <td>${h.answered||0}/${h.totalQ||0}</td>
       <td class="${scoreClass}">${scoreText}</td>
       <td class="hist-date">${dateStr}</td>
+      <td>${hasDetail ? `<button class="bc-btn" onclick="openHistDetail(${i})" title="Xem chi tiết">🔍</button>` : '–'}</td>
     </tr>`;
   }).join('');
 }
@@ -2645,4 +2621,106 @@ function _timeAgo(ms, now) {
   if (diff < 3600000) return `${Math.floor(diff/60000)} phút trước`;
   if (diff < 86400000) return `${Math.floor(diff/3600000)} giờ trước`;
   return `${Math.floor(diff/86400000)} ngày trước`;
+}
+
+// ══════════════════════════════════════════
+//  HISTORY DETAIL — Đối chiếu đáp án
+// ══════════════════════════════════════════
+function openHistDetail(histIdx) {
+  const hist = loadHistory();
+  const h = hist[histIdx];
+  if (!h || !h.questions) return;
+
+  const d = new Date(h.date);
+  const dateStr = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  document.getElementById('hist-detail-title').textContent =
+    `🔍 ${h.title||h.subject} — ${h.username} — ${dateStr}`;
+
+  const rm = typeof renderMathHTML === 'function' ? renderMathHTML : escH;
+
+  const rows = h.questions.map((q, i) => {
+    const studentAns = h.answers?.[i];
+    const keyAns     = h.answerKey?.[i];
+    const pts        = calcScore(q, studentAns, keyAns);
+    const hasKey     = keyAns !== null && keyAns !== undefined &&
+                       !(Array.isArray(keyAns) && keyAns.every(v => v === null));
+
+    let studentStr = '–', keyStr = '–', rowClass = '';
+
+    if (q.type === 'mcq') {
+      studentStr = (studentAns !== null && studentAns !== undefined) ? ALPHA[Number(studentAns)] : '–';
+      keyStr     = hasKey ? ALPHA[Number(keyAns)] : '–';
+      if (hasKey) rowClass = (Number(studentAns) === Number(keyAns)) ? 'hd-correct' : 'hd-wrong';
+    } else if (q.type === 'truefalse') {
+      studentStr = Array.isArray(studentAns)
+        ? studentAns.map((v,si) => `(${si+1})${v||'–'}`).join(' ')
+        : '–';
+      keyStr = Array.isArray(keyAns) && hasKey
+        ? keyAns.map((v,si) => `(${si+1})${v||'–'}`).join(' ')
+        : '–';
+      if (hasKey && pts !== null) {
+        rowClass = pts >= 6 ? 'hd-correct' : pts > 0 ? 'hd-partial' : 'hd-wrong';
+      }
+    } else if (q.type === 'matching') {
+      studentStr = Array.isArray(studentAns)
+        ? studentAns.map((v,li) => `${li+1}→${v!==null&&v!==undefined?ALPHA[Number(v)]:'–'}`).join(' ')
+        : '–';
+      keyStr = Array.isArray(keyAns) && hasKey
+        ? keyAns.map((v,li) => `${li+1}→${v!==null&&v!==undefined?ALPHA[Number(v)]:'–'}`).join(' ')
+        : '–';
+      if (hasKey && pts !== null) {
+        rowClass = pts >= 6 ? 'hd-correct' : pts > 0 ? 'hd-partial' : 'hd-wrong';
+      }
+    } else if (q.type === 'short') {
+      studentStr = studentAns !== null && studentAns !== undefined ? String(studentAns) : '–';
+      keyStr     = hasKey ? String(keyAns) : '–';
+      if (hasKey) {
+        const g = String(studentAns||'').trim().toLowerCase().replace(/,/g,'.');
+        const e = String(keyAns).trim().toLowerCase().replace(/,/g,'.');
+        rowClass = g === e ? 'hd-correct' : 'hd-wrong';
+      }
+    }
+
+    const ptsStr = pts !== null ? `${pts}đ` : '–';
+    const icon   = !hasKey ? '' : rowClass === 'hd-correct' ? '✅' : rowClass === 'hd-partial' ? '⚡' : '❌';
+
+    return `<div class="hd-row ${rowClass}">
+      <div class="hd-num">${icon} Câu ${i+1} <span class="bank-card-type ${q.type}" style="font-size:.65rem">${typeShort(q.type)}</span></div>
+      <div class="hd-question">${rm(q.question)}</div>
+      <div class="hd-answers">
+        <div class="hd-ans-col">
+          <span class="hd-label">Bài làm</span>
+          <span class="hd-val student">${escH(studentStr)}</span>
+        </div>
+        <div class="hd-ans-col">
+          <span class="hd-label">Đáp án</span>
+          <span class="hd-val key">${escH(keyStr)}</span>
+        </div>
+        <div class="hd-ans-col">
+          <span class="hd-label">Điểm</span>
+          <span class="hd-val pts">${ptsStr}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const scoreText = h.possible > 0 ? `${h.score}/${h.possible} điểm` : '– (chưa có đáp án)';
+  document.getElementById('hist-detail-body').innerHTML = `
+    <div class="hd-summary">
+      <span>📊 Tổng: <b>${scoreText}</b></span>
+      <span>✅ Đã làm: <b>${h.answered||0}/${h.totalQ||0}</b></span>
+    </div>
+    <div class="hd-legend">
+      <span class="hd-correct-tag">✅ Đúng</span>
+      <span class="hd-partial-tag">⚡ Một phần</span>
+      <span class="hd-wrong-tag">❌ Sai</span>
+    </div>
+    ${rows}`;
+
+  document.getElementById('hist-detail-modal').classList.remove('hidden');
+  if (window.katex) setTimeout(rerenderPendingMath, 80);
+}
+
+function closeHistDetail() {
+  document.getElementById('hist-detail-modal').classList.add('hidden');
 }

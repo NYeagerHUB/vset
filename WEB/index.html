@@ -224,7 +224,7 @@
         </div>
         <div class="hist-table-wrap">
           <table class="hist-table" id="hist-table">
-            <thead><tr><th>#</th><th>Thí sinh</th><th>Môn thi</th><th>Số câu</th><th>Điểm</th><th>Thời gian</th></tr></thead>
+            <thead><tr><th>#</th><th>Thí sinh</th><th>Môn thi</th><th>Số câu</th><th>Điểm</th><th>Thời gian</th><th></th></tr></thead>
             <tbody id="hist-tbody"></tbody>
           </table>
         </div>
@@ -623,6 +623,20 @@
 
 <!-- Toast -->
 <div id="pdf-import-toast" class="pdf-toast hidden"></div>
+
+<!-- History Detail Modal -->
+<div id="hist-detail-modal" class="modal-overlay hidden">
+  <div class="modal-box modal-wide" style="max-width:860px">
+    <div class="modal-header">
+      <h3 id="hist-detail-title">Chi tiết bài thi</h3>
+      <button class="modal-x-close" onclick="closeHistDetail()">✕</button>
+    </div>
+    <div class="modal-body" id="hist-detail-body" style="max-height:75vh;overflow-y:auto;padding:.8rem 1rem"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeHistDetail()">Đóng</button>
+    </div>
+  </div>
+</div>
 
 <script src="exam.js"></script>
 <script src="pdf-import.js"></script>
