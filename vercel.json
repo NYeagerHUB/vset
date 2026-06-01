@@ -21,6 +21,11 @@
       "headers": { "content-type": "application/javascript; charset=utf-8" },
       "dest": "/WEB/gemini-import.js"
     },
+    {
+      "src": "/favicon.png",
+      "headers": { "content-type": "image/png" },
+      "dest": "/WEB/favicon.png"
+    },
     { "src": "/", "dest": "/WEB/index.html" },
     { "src": "/(.*)", "dest": "/WEB/$1" }
   ]
