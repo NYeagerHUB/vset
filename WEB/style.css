@@ -2287,36 +2287,6 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
 .sae-match-num { font-size: .75rem; color: var(--text-muted); }
 
 /* ═══════════════════════════════════════
-   CUSTOM CURSOR — Kitty Paw 🐾
-═══════════════════════════════════════ */
-
-/* Ẩn cursor mặc định trên toàn trang */
-*, *::before, *::after {
-  cursor: none !important;
-}
-
-/* Element cursor tùy chỉnh */
-#custom-cursor {
-  position: fixed;
-  top: 0; left: 0;
-  width: 40px; height: 40px;
-  pointer-events: none;
-  z-index: 999999;
-  transform: translate(-4px, -4px);
-  transition: transform 0.08s ease, opacity 0.2s ease;
-  will-change: transform;
-}
-
-#custom-cursor.clicking {
-  transform: translate(-4px, -4px) scale(0.82) rotate(-15deg);
-}
-
-#custom-cursor svg {
-  width: 100%; height: 100%;
-  filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.25));
-}
-
-/* ═══════════════════════════════════════
    ADMIN PRESENCE PANEL
 ═══════════════════════════════════════ */
 .dnav-admin { border-top: 1px solid rgba(255,255,255,.15); margin-top: .4rem; padding-top: .5rem; }
