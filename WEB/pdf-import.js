@@ -626,6 +626,72 @@ async function handleAnsFileSelect(e) {
 }
 
 // ══════════════════════════════════════════
+//  SAFE LATEX RENDER — không crash khi KaTeX lỗi
+// ══════════════════════════════════════════
+function safeRenderMath(str) {
+  if (!str) return '';
+  // Nếu KaTeX chưa load → trả về text thô (sẽ re-render sau)
+  if (!window.katex) return `<span class="math-pending">${escH(str)}</span>`;
+
+  // Tách text và math tokens
+  const pattern = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\))/g;
+  const parts = [];
+  let last = 0, m;
+  pattern.lastIndex = 0;
+  while ((m = pattern.exec(str)) !== null) {
+    if (m.index > last) parts.push({ type: 'text', val: str.slice(last, m.index) });
+    parts.push({ type: 'math', val: m[0] });
+    last = m.index + m[0].length;
+  }
+  if (last < str.length) parts.push({ type: 'text', val: str.slice(last) });
+  if (!parts.length) return escH(str);
+
+  return parts.map(p => {
+    if (p.type === 'text') return escH(p.val);
+    const isDisplay = p.val.startsWith('$$') || p.val.startsWith('\\[');
+    let inner = p.val;
+    if (inner.startsWith('$$'))     inner = inner.slice(2, -2);
+    else if (inner.startsWith('$')) inner = inner.slice(1, -1);
+    else if (inner.startsWith('\\[')) inner = inner.slice(2, -2);
+    else if (inner.startsWith('\\(')) inner = inner.slice(2, -2);
+    try {
+      return window.katex.renderToString(inner.trim(), {
+        throwOnError: false,
+        displayMode: isDisplay,
+        output: 'html',
+        trust: false,
+        strict: false,
+        macros: { '\\R':'\\mathbb{R}', '\\N':'\\mathbb{N}', '\\Z':'\\mathbb{Z}' }
+      });
+    } catch {
+      // Lỗi LaTeX → hiện text gốc thay vì crash
+      return `<span class="latex-error" title="LaTeX lỗi">${escH(p.val)}</span>`;
+    }
+  }).join('');
+}
+
+// Re-render tất cả math-pending sau khi KaTeX load xong
+document.addEventListener('katex-ready', () => {
+  document.querySelectorAll('#pdf-preview-list .math-pending').forEach(el => {
+    const raw = el.textContent;
+    const tmp = document.createElement('span');
+    tmp.innerHTML = safeRenderMath(raw);
+    el.replaceWith(...tmp.childNodes);
+  });
+});
+
+// ══════════════════════════════════════════
+//  TÍNH SỐ TRANG GỢI Ý cho câu có hình
+//  Ước tính: mỗi trang ~3-4 câu, câu i → trang floor(i/3)
+// ══════════════════════════════════════════
+function guessPageForQuestion(qIdx, totalPages) {
+  if (!totalPages) return null;
+  // Ước tính dựa trên vị trí câu trong đề
+  const approxPage = Math.floor(qIdx / 3);
+  return Math.min(approxPage, totalPages - 1);
+}
+
+// ══════════════════════════════════════════
 //  RENDER PREVIEW
 // ══════════════════════════════════════════
 function renderPdfPreview(questions) {
@@ -636,7 +702,7 @@ function renderPdfPreview(questions) {
   document.getElementById('pdf-stat-match').textContent = typeCount.matching;
   document.getElementById('pdf-stat-short').textContent = typeCount.short;
 
-  const rm = typeof renderMathHTML === 'function' ? renderMathHTML : escH;
+  const hasPdfCanvas = _pdfPageCanvases.length > 0;
 
   document.getElementById('pdf-preview-list').innerHTML = questions.map((q, i) => {
     const typeLabel = { truefalse:'Đ/S', mcq:'TN', matching:'Ghép', short:'TLN' }[q.type] || q.type;
@@ -648,46 +714,67 @@ function renderPdfPreview(questions) {
       ? `<span class="pdf-ans-ok">🔑 Có đáp án</span>`
       : `<span class="pdf-ans-no">— Chưa có đáp án</span>`;
 
-    // Badge ảnh
-    const hasImg = q._image ? `<span class="pdf-img-badge">🖼️ Có ảnh</span>` : '';
+    // Badge ảnh đã crop
+    const hasImgBadge = q._image ? `<span class="pdf-img-badge">🖼️ Có ảnh</span>` : '';
 
-    // Nút crop ảnh (chỉ hiện khi đã render canvas)
-    const hasPdfCanvas = _pdfPageCanvases.length > 0;
+    // Nút crop — nếu câu có hình ref thì gợi ý trang
+    const needsImg = hasImageRef(q) && !q._image;
+    const guessedPage = needsImg ? guessPageForQuestion(i, _pdfPageCanvases.length) : null;
+    const pageHint = (guessedPage !== null) ? ` data-page="${guessedPage}"` : '';
+
     const cropBtn = hasPdfCanvas
-      ? `<button class="pdf-crop-btn" onclick="openCropModal(${i})" title="Chọn vùng ảnh từ PDF">📷 Chọn ảnh</button>`
+      ? `<button class="pdf-crop-btn${needsImg ? ' pdf-crop-btn-warn' : ''}"
+           onclick="openCropModal(${i}, ${guessedPage ?? 0})"
+           title="Crop ảnh từ PDF${guessedPage !== null ? ' · gợi ý trang ' + (guessedPage+1) : ''}"
+           ${pageHint}>
+           📷 ${needsImg ? `Crop ảnh (tr.${(guessedPage??0)+1})` : 'Chọn ảnh'}
+         </button>`
       : `<label class="pdf-crop-btn pdf-upload-img-btn" title="Upload ảnh thủ công">
            📷 Thêm ảnh
            <input type="file" accept="image/*" style="display:none" onchange="handleManualImageUpload(event,${i})"/>
          </label>`;
 
-    // Chi tiết
+    // ── Chi tiết câu hỏi với LaTeX ──
     let detail = '';
     if (q.type === 'truefalse') {
-      detail = `<div class="pdf-prev-stmts">${q.statements.map((s, si) => {
+      detail = `<div class="pdf-prev-stmts">${(q.statements||[]).map((s, si) => {
         const ans = q.answers?.[si];
-        const ansLabel = ans === 'D' ? '<b class="ans-d">Đ</b>' : ans === 'S' ? '<b class="ans-s">S</b>' : '<span class="ans-none">?</span>';
+        const ansLabel = ans === 'D' ? '<b class="ans-d">Đ</b>'
+                       : ans === 'S' ? '<b class="ans-s">S</b>'
+                       : '<span class="ans-none">?</span>';
         return `<div class="pdf-prev-stmt">
           <span class="pdf-stmt-label">${['a','b','c','d'][si]})</span>
-          <span class="pdf-stmt-text">${rm(s)}</span>
+          <span class="pdf-stmt-text">${safeRenderMath(s)}</span>
           <span class="pdf-stmt-ans">${ansLabel}</span>
         </div>`;
       }).join('')}</div>`;
+
     } else if (q.type === 'mcq') {
-      detail = `<div class="pdf-prev-opts">${q.options.map((o, oi) => {
+      detail = `<div class="pdf-prev-opts">${(q.options||[]).map((o, oi) => {
         const isAns = q.answer !== null && q.answer !== undefined && Number(q.answer) === oi;
         return `<div class="pdf-prev-opt ${isAns ? 'opt-correct' : ''}">
-          <span class="pdf-opt-label">${['A','B','C','D'][oi]}.</span> ${rm(o)}
-          ${isAns ? ' ✓' : ''}
+          <span class="pdf-opt-label">${['A','B','C','D'][oi]}.</span>
+          ${safeRenderMath(o)}
+          ${isAns ? '<span class="opt-check">✓</span>' : ''}
         </div>`;
       }).join('')}</div>`;
+
     } else if (q.type === 'matching') {
-      detail = `<div class="pdf-prev-match">${q.left.map((l, li) => {
-        const ans = q.answers?.[li];
-        const ansLabel = (ans !== null && ans !== undefined) ? `→ <b>${['A','B','C','D','E','F'][ans]}</b>` : '→ ?';
-        return `<div class="pdf-match-row"><span>${li+1}. ${rm(l)}</span><span class="pdf-match-ans">${ansLabel}</span></div>`;
-      }).join('')}
-      ${q.right && q.right.length ? `<div class="pdf-match-right-list">${q.right.map((r,ri)=>`<span class="pdf-match-right-item"><b>${['A','B','C','D','E','F'][ri]}.</b> ${rm(r)}</span>`).join('')}</div>` : ''}
+      detail = `<div class="pdf-prev-match">
+        ${(q.left||[]).map((l, li) => {
+          const ans = q.answers?.[li];
+          const ansLabel = (ans !== null && ans !== undefined)
+            ? `→ <b>${['A','B','C','D','E','F'][ans]}</b>` : '→ ?';
+          return `<div class="pdf-match-row">
+            <span class="pdf-match-left">${li+1}. ${safeRenderMath(l)}</span>
+            <span class="pdf-match-ans">${ansLabel}</span>
+          </div>`;
+        }).join('')}
+        ${q.right?.length ? `<div class="pdf-match-right-list">${q.right.map((r,ri) =>
+          `<span class="pdf-match-right-item"><b>${['A','B','C','D','E','F'][ri]}.</b> ${safeRenderMath(r)}</span>`
+        ).join('')}</div>` : ''}
       </div>`;
+
     } else if (q.type === 'short') {
       const ansVal = (q.answer !== null && q.answer !== undefined && String(q.answer).trim())
         ? `<b class="ans-d">${escH(String(q.answer))}</b>`
@@ -703,33 +790,43 @@ function renderPdfPreview(questions) {
          </div>`
       : '';
 
+    // Notice câu cần ảnh
+    const imgNotice = needsImg
+      ? `<div class="pdf-img-notice">
+           🖼️ Câu này có hình vẽ/đồ thị — nhấn
+           <b>📷 Crop ảnh (tr.${(guessedPage??0)+1})</b> để chọn vùng từ PDF.
+         </div>`
+      : '';
+
     return `<div class="pdf-prev-item" id="pdf-prev-item-${i}">
       <div class="pdf-prev-header">
         <span class="pdf-prev-num">Câu ${i+1}</span>
         <span class="bank-card-type ${typeClass}">${typeLabel}</span>
         ${ansBadge}
-        ${hasImg}
+        ${hasImgBadge}
         ${cropBtn}
         <label class="pdf-prev-check-wrap">
           <input type="checkbox" class="pdf-prev-check" data-idx="${i}" checked/>
           <span>Chọn</span>
         </label>
       </div>
-      <div class="pdf-prev-q">${rm(q.question)}</div>
+      <div class="pdf-prev-q">${safeRenderMath(q.question)}</div>
       ${imgPreview}
-      ${hasImageRef(q) && !q._image ? `<div class="pdf-img-notice">🖼️ Câu này có hình vẽ/đồ thị — nhấn <b>📷 Chọn ảnh</b> để crop từ PDF.</div>` : ''}
+      ${imgNotice}
       ${detail}
     </div>`;
   }).join('');
 
-  // Re-render KaTeX sau khi DOM cập nhật
+  // Re-render math-pending nếu KaTeX chưa load kịp
   if (window.katex) {
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       document.querySelectorAll('#pdf-preview-list .math-pending').forEach(el => {
         const raw = el.textContent;
-        el.outerHTML = renderMathHTML(raw);
+        const tmp = document.createElement('span');
+        tmp.innerHTML = safeRenderMath(raw);
+        el.replaceWith(...tmp.childNodes);
       });
-    }, 50);
+    });
   }
 }
 
@@ -870,10 +967,9 @@ function rerenderPrevItem(qIdx) {
 // ══════════════════════════════════════════
 //  CROP MODAL
 // ══════════════════════════════════════════
-function openCropModal(qIdx) {
+function openCropModal(qIdx, suggestedPage) {
   if (!_pdfPageCanvases.length) return;
   _cropTargetIdx = qIdx;
-  _cropPageIdx   = 0;
   _cropRect      = null;
 
   const modal = document.getElementById('pdf-crop-modal');
@@ -884,9 +980,15 @@ function openCropModal(qIdx) {
   sel.innerHTML = _pdfPageCanvases.map((_, i) =>
     `<option value="${i}">Trang ${i+1}</option>`
   ).join('');
-  sel.value = 0;
 
-  renderCropCanvas(0);
+  // Mở đúng trang gợi ý
+  const startPage = (suggestedPage !== undefined && suggestedPage !== null)
+    ? Math.max(0, Math.min(suggestedPage, _pdfPageCanvases.length - 1))
+    : 0;
+  sel.value = startPage;
+  _cropPageIdx = startPage;
+
+  renderCropCanvas(startPage);
 }
 
 function closeCropModal() {
@@ -1115,3 +1217,251 @@ function initPdfImport() {
 }
 
 document.addEventListener('DOMContentLoaded', initPdfImport);
+
+
+// ══════════════════════════════════════════
+//  MODE TABS — PDF thuần vs JSON+PDF
+// ══════════════════════════════════════════
+let _importMode = 'pdf'; // 'pdf' | 'json-pdf'
+
+function initImportModeTabs() {
+  document.querySelectorAll('.imt-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _importMode = btn.dataset.mode;
+      document.querySelectorAll('.imt-tab').forEach(b => b.classList.toggle('active', b === btn));
+      document.getElementById('import-mode-pdf').classList.toggle('hidden', _importMode !== 'pdf');
+      document.getElementById('import-mode-json-pdf').classList.toggle('hidden', _importMode !== 'json-pdf');
+      // Reset preview
+      document.getElementById('pdf-preview-area').classList.add('hidden');
+      _parsedQuestions = [];
+    });
+  });
+}
+
+// ══════════════════════════════════════════
+//  JSON + PDF MODE STATE
+// ══════════════════════════════════════════
+let _jspdfQuestions  = [];   // câu hỏi từ JSON
+let _jspdfPdfLoaded  = false; // PDF đã render canvas chưa
+
+// ── Xử lý JSON ──
+async function handleJspdfJsonSelect(e) {
+  const file = e.target.files[0]; if (!file) return;
+  e.target.value = '';
+  const statusEl = document.getElementById('jspdf-json-status');
+  const badge    = document.getElementById('jspdf-json-badge');
+
+  statusEl.textContent = '⏳ Đang đọc JSON...';
+  statusEl.className = 'pdf-status-text';
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    // Hỗ trợ cả 2 format: { questions: [...] } hoặc [...] trực tiếp
+    const qs = Array.isArray(data) ? data : (data.questions || []);
+    if (!qs.length) throw new Error('Không tìm thấy câu hỏi trong file JSON.');
+
+    // Gán id nếu thiếu
+    qs.forEach((q, i) => { if (!q.id) q.id = `q${i+1}`; });
+    _jspdfQuestions = qs;
+
+    statusEl.textContent = `✅ Đọc được ${qs.length} câu hỏi`;
+    statusEl.className = 'pdf-status-text ok';
+    badge.textContent = `${qs.length} câu`;
+    badge.classList.remove('hidden');
+
+    // Nếu PDF đã load → render preview luôn
+    _tryRenderJspdfPreview();
+  } catch(err) {
+    statusEl.textContent = '❌ ' + err.message;
+    statusEl.className = 'pdf-status-text error';
+  }
+}
+
+// ── Xử lý PDF (quét đáp án + detect trang đồ thị) ──
+async function handleJspdfPdfSelect(e) {
+  const file = e.target.files[0]; if (!file) return;
+  e.target.value = '';
+  const statusEl = document.getElementById('jspdf-pdf-status');
+  const badge    = document.getElementById('jspdf-pdf-badge');
+
+  statusEl.textContent = '⏳ Đang render PDF...';
+  statusEl.className = 'pdf-status-text';
+  _jspdfPdfLoaded = false;
+
+  try {
+    // Render canvas + extract text cùng lúc
+    const rawText = await extractTextAndRenderPDF(file);
+
+    // Quét đáp án từ text
+    const answerMap = parseVSATAnswers(rawText);
+
+    // Ghép đáp án vào câu hỏi JSON nếu có
+    if (_jspdfQuestions.length && answerMap.size > 0) {
+      _jspdfQuestions = mergeAnswers(_jspdfQuestions, answerMap);
+    }
+
+    // Detect trang có đồ thị bằng cách quét text từng trang
+    await _detectGraphPages(rawText);
+
+    _jspdfPdfLoaded = true;
+    const ansCount = answerMap.size;
+    statusEl.textContent = `✅ ${_pdfPageCanvases.length} trang · ${ansCount} đáp án · sẵn sàng crop ảnh`;
+    statusEl.className = 'pdf-status-text ok';
+    badge.textContent = `${_pdfPageCanvases.length} trang`;
+    badge.classList.remove('hidden');
+
+    _tryRenderJspdfPreview();
+  } catch(err) {
+    statusEl.textContent = '❌ ' + err.message;
+    statusEl.className = 'pdf-status-text error';
+  }
+}
+
+// ── Map câu hỏi → số trang gợi ý dựa trên text PDF ──
+let _questionPageMap = {}; // { qIdx: pageIdx (0-based) }
+
+async function _detectGraphPages(fullText) {
+  _questionPageMap = {};
+  if (!_pdfPageCanvases.length) return;
+
+  // Tách text theo trang (extractTextAndRenderPDF đã render canvas theo trang)
+  // Dùng lại _pdfDoc để lấy text từng trang
+  if (!_pdfDoc) return;
+
+  const pageTexts = [];
+  for (let p = 1; p <= _pdfDoc.numPages; p++) {
+    const page    = await _pdfDoc.getPage(p);
+    const content = await page.getTextContent();
+    let t = '';
+    for (const item of content.items) t += item.str + ' ';
+    pageTexts.push(t);
+  }
+
+  // Với mỗi câu hỏi, tìm trang chứa "Câu X" hoặc nội dung câu đó
+  _jspdfQuestions.forEach((q, idx) => {
+    const qNum = idx + 1;
+    const cauPattern = new RegExp(`Câu\\s*${qNum}\\b`, 'i');
+
+    for (let p = 0; p < pageTexts.length; p++) {
+      if (cauPattern.test(pageTexts[p])) {
+        _questionPageMap[idx] = p;
+        break;
+      }
+    }
+
+    // Fallback: ước tính nếu không tìm thấy
+    if (_questionPageMap[idx] === undefined) {
+      _questionPageMap[idx] = Math.min(
+        Math.floor(idx / 3) + 1,
+        _pdfPageCanvases.length - 1
+      );
+    }
+  });
+}
+
+// ── Render preview khi cả JSON và PDF đã sẵn sàng ──
+function _tryRenderJspdfPreview() {
+  if (!_jspdfQuestions.length) return;
+
+  // Copy sang _parsedQuestions để dùng chung hàm renderPdfPreview
+  _parsedQuestions = _jspdfQuestions.map(q => ({ ...q }));
+
+  renderPdfPreview(_parsedQuestions);
+  document.getElementById('pdf-preview-area').classList.remove('hidden');
+
+  // Cập nhật stat "cần ảnh"
+  const needImg = _parsedQuestions.filter(q => hasImageRef(q) && !q._image && !q.image).length;
+  const el = document.getElementById('pdf-stat-needimg');
+  if (el) el.textContent = needImg;
+}
+
+// ── Override openCropModal để dùng _questionPageMap khi ở mode json-pdf ──
+const _origOpenCropModal = typeof openCropModal === 'function' ? openCropModal : null;
+
+function openCropModal(qIdx, suggestedPage) {
+  if (!_pdfPageCanvases.length) return;
+  _cropTargetIdx = qIdx;
+  _cropRect      = null;
+
+  const modal = document.getElementById('pdf-crop-modal');
+  modal.classList.remove('hidden');
+
+  const sel = document.getElementById('crop-page-select');
+  sel.innerHTML = _pdfPageCanvases.map((_, i) =>
+    `<option value="${i}">Trang ${i+1}</option>`
+  ).join('');
+
+  // Ưu tiên: trang từ _questionPageMap → suggestedPage → 0
+  let startPage = 0;
+  if (_importMode === 'json-pdf' && _questionPageMap[qIdx] !== undefined) {
+    startPage = _questionPageMap[qIdx];
+  } else if (suggestedPage !== undefined && suggestedPage !== null) {
+    startPage = Math.max(0, Math.min(suggestedPage, _pdfPageCanvases.length - 1));
+  }
+
+  sel.value = startPage;
+  _cropPageIdx = startPage;
+  renderCropCanvas(startPage);
+}
+
+// ── Init drop zones cho JSON+PDF mode ──
+function initJspdfMode() {
+  // JSON drop zone
+  const jz = document.getElementById('jspdf-json-zone');
+  if (!jz) return;
+  jz.addEventListener('click', () => document.getElementById('jspdf-json-input').click());
+  jz.addEventListener('dragover', e => { e.preventDefault(); jz.classList.add('drag-over'); });
+  jz.addEventListener('dragleave', () => jz.classList.remove('drag-over'));
+  jz.addEventListener('drop', e => {
+    e.preventDefault(); jz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) handleJspdfJsonSelect({ target: { files: [f], value: '' } });
+  });
+  document.getElementById('jspdf-json-input').addEventListener('change', handleJspdfJsonSelect);
+
+  // PDF drop zone
+  const pz = document.getElementById('jspdf-pdf-zone');
+  pz.addEventListener('click', () => document.getElementById('jspdf-pdf-input').click());
+  pz.addEventListener('dragover', e => { e.preventDefault(); pz.classList.add('drag-over'); });
+  pz.addEventListener('dragleave', () => pz.classList.remove('drag-over'));
+  pz.addEventListener('drop', e => {
+    e.preventDefault(); pz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type === 'application/pdf') handleJspdfPdfSelect({ target: { files: [f], value: '' } });
+  });
+  document.getElementById('jspdf-pdf-input').addEventListener('change', handleJspdfPdfSelect);
+}
+
+// ── Reset khi đóng modal ──
+const _origClosePdfImportModal = closePdfImportModal;
+function closePdfImportModal() {
+  _origClosePdfImportModal();
+  _jspdfQuestions  = [];
+  _jspdfPdfLoaded  = false;
+  _questionPageMap = {};
+  // Reset status json-pdf
+  ['jspdf-json-status','jspdf-pdf-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = 'pdf-status-text'; }
+  });
+  ['jspdf-json-badge','jspdf-pdf-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  // Reset tab về PDF
+  _importMode = 'pdf';
+  document.querySelectorAll('.imt-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === 'pdf')
+  );
+  document.getElementById('import-mode-pdf').classList.remove('hidden');
+  document.getElementById('import-mode-json-pdf').classList.add('hidden');
+}
+
+// ── Gắn vào initPdfImport ──
+const _origInitPdfImport = initPdfImport;
+document.addEventListener('DOMContentLoaded', () => {
+  initImportModeTabs();
+  initJspdfMode();
+});

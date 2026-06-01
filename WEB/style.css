@@ -1747,3 +1747,157 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
   border-radius:var(--radius);padding:.45rem .75rem;
   font-size:.8rem;color:var(--text-muted);text-align:center;
 }
+
+/* ══════════════════════════════════════════
+   GEMINI AI IMPORT
+══════════════════════════════════════════ */
+.gemini-divider {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: .8rem 0 .4rem;
+  color: var(--text-muted);
+  font-size: .75rem;
+}
+.gemini-divider::before,
+.gemini-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.gemini-ai-btn {
+  width: 100%;
+  padding: .65rem 1rem;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  transition: opacity .15s, transform .1s;
+  box-shadow: 0 2px 8px rgba(79,70,229,.35);
+}
+.gemini-ai-btn:hover  { opacity: .9; transform: translateY(-1px); }
+.gemini-ai-btn:active { transform: translateY(0); }
+
+/* Progress bar */
+.gemini-progress-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  margin-bottom: .8rem;
+}
+.gemini-progress-wrap.hidden { display: none; }
+
+.gemini-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-bottom: .4rem;
+}
+.gemini-progress-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.gemini-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+/* ══════════════════════════════════════════
+   LATEX ERROR & CROP IMPROVEMENTS
+══════════════════════════════════════════ */
+.latex-error {
+  color: var(--danger, #ef4444);
+  background: rgba(239,68,68,.08);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-family: monospace;
+  font-size: .8em;
+}
+
+/* Nút crop khi câu cần ảnh — highlight vàng */
+.pdf-crop-btn-warn {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #fff !important;
+  animation: pulse-warn 2s infinite;
+}
+@keyframes pulse-warn {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(245,158,11,0); }
+}
+
+/* Check mark trong MCQ */
+.opt-check {
+  margin-left: .4rem;
+  color: var(--success, #22c55e);
+  font-weight: 700;
+}
+
+/* Match left column */
+.pdf-match-left {
+  flex: 1;
+  font-size: .85rem;
+}
+
+/* ══════════════════════════════════════════
+   IMPORT MODE TABS
+══════════════════════════════════════════ */
+.import-mode-tabs {
+  display: flex;
+  gap: .4rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .3rem;
+}
+.imt-tab {
+  flex: 1;
+  padding: .5rem .8rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.imt-tab.active {
+  background: var(--accent, #6366f1);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(99,102,241,.3);
+}
+.imt-tab:not(.active):hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.import-mode-panel.hidden { display: none; }
+
+/* Info box JSON+PDF mode */
+.jspdf-info {
+  background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(139,92,246,.08));
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 10px;
+  padding: .7rem 1rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin-bottom: .8rem;
+  line-height: 1.5;
+}
+.jspdf-info b { color: var(--accent, #6366f1); }

@@ -1,0 +1,8 @@
+{
+  "name": "PDF to Quiz JSON & Graph Digitizer",
+  "description": "Convert educational PDF documents into structured JSON format with vector mathematical graphs reconstructed automatically using Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

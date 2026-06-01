@@ -1,0 +1,317 @@
+{
+  "questions": [
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho dãy số $(u_n)$, biết $\\begin{cases} u_1 = 2 \\\\ u_{n+1} = 3u_n - 2 \\end{cases}$ với $n \\ge 1$. Khi đó:",
+      "statements": [
+        "Bốn số hạng đầu tiên của dãy số lần lượt là 2; 4; 10; 28.",
+        "Số hạng thứ năm của dãy là 80.",
+        "Công thức số hạng tổng quát của dãy số là: $u_n = 3^{n-1} - 1$.",
+        "2188 là số hạng thứ 8 của dãy số đã cho."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho hàm số $f(x) = 4\\sin x \\cos x + 2x$.",
+      "statements": [
+        "Đạo hàm của hàm số đã cho là $f'(x) = 4\\sin 2x + 2$.",
+        "Hàm số $y = f(x)$ có 4 điểm cực trị thuộc $[-\\pi; \\pi]$.",
+        "Hàm số $y = f(x)$ nghịch biến trên khoảng $(-2; -1)$.",
+        "Giá trị lớn nhất của $f(x)$ trên đoạn $\\left[0; \\frac{\\pi}{2}\\right]$ là $\\frac{2\\pi}{3} + \\sqrt{3}$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho bốn điểm $A(0;1;1)$, $B(-1;0;2)$, $C(-1;1;0)$, $D(2;1;-2)$. Xét tính đúng sai của các mệnh đề sau:",
+      "statements": [
+        "Mặt phẳng $(ABC)$ có phương trình là $x - 2y - z + 3 = 0$.",
+        "Khoảng cách giữa hai đường thẳng chéo nhau $AB$ và $CD$ bằng $\\frac{5}{\\sqrt{14}}$.",
+        "Thể tích khối tứ diện $ABCD$ bằng 5.",
+        "Cosin của góc tạo bởi hai mặt phẳng $(ABC)$ và $(BCD)$ bằng $\\frac{13}{42}$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trong lớp 12X có 45% học sinh thích học môn Toán, 40% học sinh thích học môn Ngữ Văn và 30% học sinh thích học cả hai môn Toán và Ngữ Văn. Giáo viên chủ nhiệm chọn ngẫu nhiên một học sinh trong lớp 12X.",
+      "statements": [
+        "Xác suất chọn được học sinh thích học môn Ngữ Văn là 0,4.",
+        "Xác suất chọn được học sinh thích học ít nhất một trong hai môn Toán và Ngữ Văn là 0,85.",
+        "Xác suất chọn được học sinh chỉ thích học môn Toán mà không thích học môn Ngữ Văn là 0,05.",
+        "Xác suất chọn được học sinh thích học cả hai môn Toán và Ngữ Văn là 0,3."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho hàm số $y = f(x)$ liên tục trên đoạn $[a;b]$. Gọi $F(x)$ là một nguyên hàm của hàm số $y = f(x)$ trên đoạn $[a;b]$.",
+      "statements": [
+        "$\\int_a^b f(x) dx = F(b) - F(a)$.",
+        "$\\int_b^a f(x) dx = -\\int_a^b f(x) dx$.",
+        "Nếu $a < c < b$ và $\\int_a^b f(x) dx = m, \\int_c^a f(x) dx = n$ thì $\\int_c^b f(x) dx = m - n$.",
+        "$\\int_a^b [2024f(x) + 2025] dx = 2024 \\int_a^b f(x) dx + 2025(b-a)$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho mặt cầu $(S)$ có phương trình $(x-1)^2 + (y+2)^2 + z^2 = 9$. Cho biết tính đúng, sai của các khẳng định sau.",
+      "statements": [
+        "$(S)$ có tâm $I(1; -2; 0)$ và bán kính $R = 3$.",
+        "$(S)$ đi qua gốc tọa độ $O$.",
+        "Điểm $M(1; -2; 4)$ nằm trong mặt cầu $(S)$.",
+        "$(S)$ cắt trục $Oz$ tại các điểm có tọa độ $(0;0;2)$ và $(0;0;-2)$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Một người điều khiển ô tô đang ở đường dẫn muốn nhập làn vào đường cao tốc. Khi ô tô cách điểm nhập làn $200m$, tốc độ của ô tô là $36 km/h$. Hai giây sau đó, ô tô bắt đầu tăng tốc với tốc độ $v(t) = at + b$ ($a, b \\in \\mathbb{R}, a > 0$), trong đó $t$ là thời gian tính bằng giây kể từ khi bắt đầu tăng tốc. Biết rằng ô tô nhập làn cao tốc sau 12 giây và duy trì sự tăng tốc trong 24 giây kể từ khi bắt đầu tăng tốc, sau $24s$ đó ô tô duy trì tốc độ cao nhất trong thời gian còn lại trên cao tốc.",
+      "statements": [
+        "Quãng đường ô tô đi được từ khi bắt đầu tăng tốc đến khi nhập làn là $180m$.",
+        "Vận tốc của ô tô tại thời điểm nhập làn là $72 km/h$.",
+        "Quãng đường mà ô tô đi được trong thời gian 30 giây kể từ khi ô tô cách điểm nhập làn $200m$ là $620m$.",
+        "Sau 24 giây kể từ khi tăng tốc, ô tô duy trì tốc độ cao nhất trong vòng $5s$ thì phát hiện chướng ngại vật cách đó $300m$, người điều khiển lập tức đạp phanh và ô tô chuyển động chậm dần đều với $a(t) = -3(m/s^2)$. Khi đó ô tô dừng lại cách chướng ngoại vật $10m$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Cho hình chóp tam giác đều $S.ABC$ có cạnh đáy bằng $a\\sqrt{3}$, cạnh bên bằng $2a$. Gọi $M$ là trung điểm của cạnh $BC$. Khi đó:",
+      "statements": [
+        "$SO \\perp (ABC)$.",
+        "Angle $(SA, (ABC)) = (SA, OA)$.",
+        "$SO = a\\sqrt{2}$.",
+        "Angle $(SM, (ABC)) \\approx 70,9^\\circ$."
+      ]
+    },
+    {
+      "type": "truefalse",
+      "question": "[EMPIRE TEAM] Trước 3 tiếng khi diễn ra trận Derby thành Manchester giữa MU-MC. Người ta phỏng vấn ngẫu nhiên 100 người hâm mộ của MU (có 20 người đang mặc áo của đội bóng) về việc có nên xem trận đấu đó hay không. Kết quả cho thấy rằng 75 người trả lời sẽ xem, 25 người trả lời sẽ không xem. Nhưng thực tế cho thấy rằng tỉ lệ người hâm mộ MU thực sự xem trận đấu tương ứng với những cách trả lời \"có xem\" và \"không xem\" là 80% và 20%. Gọi $A$ là biến cố \"Người được phỏng vấn thực sự sẽ xem trận đấu\", $B$ là biến cố \"Người được phỏng vấn trả lời sẽ xem trận đấu\".",
+      "statements": [
+        "$P(A|B) = 0.6$.",
+        "Tỉ lệ người được phỏng vấn thực sự sẽ xem trận đấu là 72,5%.",
+        "Trong số người được phỏng vấn thực sự sẽ xem có 17% người trả lời không xem khi được phỏng vấn.",
+        "Trong số những người mặc áo đội bóng có 30% người phỏng vấn thực sự sẽ không xem trận đấu biết rằng số người được phỏng vấn thực sự sẽ xem trận đấu mặc áo đội bóng là 14 người."
+      ]
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Cường độ một trận động đất $M$ độ Richter được cho bởi công thức $M = \\log A - \\log A_0$ với $A$ là biên độ rung chấn tối đa và $A_0$ là một biên độ chuẩn. Ngày 11/3/2011 một trận siêu động đất xảy ra tại vùng Tohoku, Nhật Bản có cường độ 9,1 độ Richter. Trước đó, vào ngày 21/5/2003 trận động đất khác ở phía Bắc Algeria có cường độ 6,8 độ Richter. Hỏi biên độ rung chấn tối đa của trận động đất ở vùng Tohoku, Nhật Bản gấp số lần biên độ rung chấn tối đa của trận động đất ở phía Bắc Algeria gần nhất với giá trị nào?",
+      "options": [
+        "2,3.",
+        "1,34.",
+        "200.",
+        "10^{6.8}."
+      ],
+      "placeholder": "C",
+      "statements": []
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Một miếng pho mát có dạng khối lăng trụ đứng với chiều cao $10 cm$ và đáy là tam giác vuông cân có cạnh góc vuông bằng $12 cm$. Tính khối lượng của miếng pho mát theo đơn vị gam, biết khối lượng riêng của loại pho mát đó là $3 g/cm^3$.",
+      "options": [
+        "720 g.",
+        "2160 g.",
+        "4320 g.",
+        "1440 g."
+      ],
+      "placeholder": "B",
+      "statements": []
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Một xe ô tô sau khi chờ hết đèn đỏ đã bắt đầu chuyển động. Trong 7 phút đầu tiên với tốc độ được biểu thị bằng đồ thị là đường cong Parabol, biết rằng sau 5 phút thì xe đạt đến tốc độ cao nhất $900 m/ph$ và bắt đầu giảm tốc độ. Sau khi đi được 7 phút thì xe chuyển động đều (tham khảo hình vẽ). Quãng đường xe đi được sau 10 phút đầu tiên kể từ khi hết đèn đỏ là bao nhiêu mét?",
+      "options": [
+        "6972 m.",
+        "6000 m.",
+        "7404 m.",
+        "8100 m."
+      ],
+      "placeholder": "A",
+      "statements": []
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Một cuộc khảo sát thực hiện để điều tra số giờ sử dụng điện thoại và tivi của 40 học sinh lớp 11A trong một tuần. Thu được kết quả như sau:\n$$\\begin{array}{|l|c|c|c|c|} \\hline \\text{Thời gian (giờ)} & [0; 2) & [2; 4) & [4; 6) & [6; 8) \\\\ \\hline \\text{Số học sinh} & 6 & 18 & 12 & 4 \\\\ \\hline \\end{array}$$\nNhóm chứa mốt là:",
+      "options": [
+        "[4;6).",
+        "[0;2).",
+        "[2;4).",
+        "[6;8)."
+      ],
+      "placeholder": "C",
+      "statements": []
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Tìm hiểu thời gian hoàn thành một bài tập (đơn vị: phút) của một số học sinh thu được kết quả sau:\n$$\\begin{array}{|l|c|c|c|c|c|} \\hline \\text{Thời gian (phút)} & [0;4) & [4;8) & [8;12) & [12;16) & [16;20) \\\\ \\hline \\text{Số học sinh} & 2 & 4 & 7 & 4 & 3 \\\\ \\hline \\end{array}$$\nThời gian trung bình (phút) để hoàn thành bài tập của các em học sinh là:",
+      "options": [
+        "7.",
+        "11,3.",
+        "10,4.",
+        "12,5."
+      ],
+      "placeholder": "C",
+      "statements": []
+    },
+    {
+      "type": "mcq",
+      "question": "[EMPIRE TEAM] Một bác tài xế thống kê lại độ dài quãng đường (đơn vị: km) bác đã lái xe mỗi ngày trong một tháng ở bảng sau:\n$$\\begin{array}{|l|c|c|c|c|c|} \\hline \\text{Độ dài quãng đường (km)} & [100;120) & [120;140) & [140;160) & [160;180) & [180;200] \\\\ \\hline \\text{Số ngày} & 6 & 8 & 12 & 2 & 2 \\\\ \\hline \\end{array}$$\nTính khoảng tứ phân vị của mẫu số liệu ghép nhóm trên. (Kết quả làm tròn đến hàng phần chục)",
+      "options": [
+        "154,2.",
+        "30,4.",
+        "24,0.",
+        "34,0."
+      ],
+      "placeholder": "B",
+      "statements": []
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Cho hàm số $y = f(x) = \\frac{x^2 + 2x + 4}{x+2}$ có đồ thị $(C)$. Gọi $A, B$ lần lượt là các điểm cực đại, cực tiểu của đồ thị $(C)$ và $O$ là gốc tọa độ.",
+      "left": [
+        "1. Tung độ điểm cực đại của đồ thị hàm số bằng",
+        "2. Diện tích của tam giác $OAB$ bằng",
+        "3. Giá trị cực tiểu của hàm số đã cho bằng",
+        "4. Tung độ giao điểm của hai đường tiệm cận của đồ thị $(C)$ bằng"
+      ],
+      "right": [
+        "A. 4",
+        "B. -6",
+        "C. 8",
+        "D. -2",
+        "E. 0",
+        "F. 2"
+      ],
+      "statements": []
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình vuông cạnh bằng 4. Lấy điểm $H$ trên cạnh $AB$ sao cho $BH = 3HA$. Đường thẳng $SH$ vuông góc với mặt phẳng $(ABCD)$ và góc giữa đường thẳng $SB$ với mặt phẳng $(ABCD)$ bằng $30^\\circ$.",
+      "left": [
+        "1. Bình phương khoảng cách từ điểm $A$ đến mặt phẳng $(SBC)$ bằng",
+        "2. Giá trị của tích vô hướng $\\vec{HB} \\cdot \\vec{HC}$ bằng",
+        "3. Giá trị của biểu thức $\\frac{3 \\cdot V_{S.ABCD}}{\\sqrt{3}}$ bằng",
+        "4. Bình phương độ dài đoạn thẳng $HC$ bằng"
+      ],
+      "right": [
+        "A. 4",
+        "B. 9",
+        "C. 12",
+        "D. 16",
+        "E. 24",
+        "F. 25"
+      ],
+      "statements": []
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Trong không gian hệ tọa độ $Oxy$, cho tam giác $ABC$ với tọa độ các đỉnh là $A(1;1;2)$, $B(5;1;-2)$ và $C(3;5;0)$.",
+      "left": [
+        "1. Hoành độ trọng tâm $G$ của tam giác $ABC$ bằng",
+        "2. Khoảng cách từ đỉnh $C$ đến đường thẳng $AB$ bằng",
+        "3. Giá trị của tích vô hướng $\\vec{AC} \\cdot \\vec{BC}$ bằng",
+        "4. Bình phương độ dài cạnh $AB$ bằng"
+      ],
+      "right": [
+        "A. 4",
+        "B. 0",
+        "C. 32",
+        "D. 3",
+        "E. 8",
+        "F. 16"
+      ],
+      "statements": []
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Trong không gian $Oxyz$, cho hai đường thẳng $d_1: \\frac{x+1}{1} = \\frac{y+2}{2} = \\frac{z}{1}$ và $d_2: \\frac{x-2}{2} = \\frac{y-1}{1} = \\frac{z-1}{1}$.",
+      "left": [
+        "1. Gọi $\\phi$ là góc giữa hai đường thẳng $d_1$ và $d_2$. Giá trị của biểu thức $6 \\cdot \\cos \\phi$ bằng",
+        "2. Gọi $K$ là giao điểm của đường thẳng $d_2$ và mặt phẳng $(P): x+y-z-4=0$. Tổng các tọa độ của điểm $K$ bằng",
+        "3. Lấy điểm $A(2;1;1)$ thuộc đường thẳng $d_2$. Giá trị của biểu thức $3 \\cdot d^2$ (với $d$ là khoảng cách từ điểm $A$ đến đường thẳng $d_1$) bằng",
+        "4. Gọi $h$ là khoảng cách giữa hai đường thẳng chéo nhau $d_1$ và $d_2$. Giá trị của biểu thức $11 \\cdot h^2$ bằng"
+      ],
+      "right": [
+        "A. 9",
+        "B. 6",
+        "C. 7",
+        "D. 5",
+        "E. 8",
+        "F. 11"
+      ],
+      "statements": []
+    },
+    {
+      "type": "matching",
+      "question": "[EMPIRE TEAM] Cho hàm số $y = f(x)$ có đạo hàm trên $\\mathbb{R}$ và hàm số $y = f'(x)$ là hàm số bậc ba có đồ thị là đường cong như hình vẽ sau:",
+      "left": [
+        "1. Số điểm cực trị của hàm số $y = f(x)$ là",
+        "2. Số điểm cực tiểu của hàm số $g(x) = f(x) - \\frac{1}{2}x^2 + x$ là",
+        "3. Tổng các hoành độ điểm cực trị của hàm số $g(x)$ bằng",
+        "4. Giá trị đạo hàm cấp hai của $f(x)$ tại $x = 0$ bằng"
+      ],
+      "right": [
+        "A. -3",
+        "B. -2",
+        "C. -1",
+        "D. 0",
+        "E. 1",
+        "F. 2"
+      ],
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Cho hàm số $y = f(x)$. Biết rằng phần hình phẳng $S_1$ và $S_2$ (xem hình vẽ) có diện tích lần lượt bằng 7 và 2. Tích phân $\\int_{-1}^4 f(x) dx$ bằng:",
+      "answer": "5",
+      "graph": {
+        "curves": [
+          {
+            "type": "equation",
+            "equation": "(x+1)*(x-2)*(x-4)*(-0.2)",
+            "range": [
+              -1,
+              4
+            ]
+          }
+        ],
+        "xAxis": {
+          "min": -2,
+          "ticks": [
+            -1,
+            0,
+            2,
+            4
+          ]
+        },
+        "yAxis": {
+          "min": -2,
+          "ticks": [
+            0
+          ]
+        }
+      }
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Với mọi số thực dương $a$ thì $\\log_3(27a) - \\log_3 a$ bằng:",
+      "answer": "3",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Một doanh nghiệp dự định sản xuất không quá 400 sản phẩm. Nếu doanh nghiệp sản xuất $x$ sản phẩm ($1 \\le x \\le 400$) thì doanh thu nhận được khi bán hết số sản phẩm đó là $F(x) = x^3 - 1999x^2 + 1001000x + 250000$ (đồng). Trong đó chi phí vận hành máy móc cho mỗi sản phẩm là $G(x) = \\frac{100000}{\\frac{3}{2}x + 1}$ (đồng). Tổng chi phí mua nguyên vật liệu là $H(x) = 2x^3 + 100000x - 50000$ (đồng) nhưng do doanh nghiệp đó mua nguyên vật liệu với số lượng lớn nên được giảm 1% cho 200 sản phẩm đầu tiên doanh nghiệp sản xuất và giảm 2% cho sản phẩm tiếp theo. Doanh nghiệp cần sản xuất bao nhiêu sản phẩm để lợi nhuận thu được là lớn nhất?",
+      "answer": "333",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Một hộp chứa 10 viên bi xanh và 5 viên bi đỏ. Bạn An lấy ra ngẫu nhiên 1 viên bi từ hộp, xem màu, rồi bỏ ra ngoài. Nếu viên bi An lấy ra có màu xanh, bạn Bình sẽ lấy ra ngẫu nhiên 2 viên bi từ hộp; còn nếu viên bi An lấy ra có màu đỏ, bạn Bình sẽ lấy ra ngẫu nhiên 3 viên bi từ hộp. Tính xác suất để An lấy được viên bi màu xanh, biết rằng tất cả các viên bi được hai bạn chọn ra đều có đủ cả hai màu.",
+      "answer": "0,7",
+      "statements": []
+    },
+    {
+      "type": "short",
+      "question": "[EMPIRE TEAM] Một kỹ sư thiết kế mô hình trang trí cho một sân khấu nổi có dạng hình lập phương $ABCD.A_1B_1C_1D_1$ với độ dài các cạnh bằng $5m$. Để tạo ra nét độc đáo cho sân khấu, người kỹ sư muốn thiết kế một dàn đèn ánh sáng nối từ một điểm $M$ trên đoạn thẳng $AD_1$ xuống điểm $N$ trên đoạn thẳng $BD$ thỏa mãn $AM = ND$. Dàn đèn ánh sáng có chiều dài ngắn nhất là bao nhiêu mét? (làm tròn kết quả đến hàng phần trăm)",
+      "answer": "4,08",
+      "statements": []
+    }
+  ]
+}

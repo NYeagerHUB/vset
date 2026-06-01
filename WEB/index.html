@@ -468,46 +468,99 @@
 <div id="pdf-import-modal" class="modal-overlay hidden">
   <div class="modal-box modal-pdf">
     <div class="modal-header">
-      <h3 id="pdf-modal-title">📄 Nhập đề thi từ PDF</h3>
+      <h3 id="pdf-modal-title">📄 Nhập đề thi</h3>
       <button class="modal-x-close" id="pdf-modal-close">✕</button>
     </div>
     <div class="modal-body pdf-modal-body">
-      <div class="pdf-upload-row">
-        <div class="pdf-upload-col">
-          <div class="pdf-col-label">📄 File đề thi <span class="pdf-col-required">*</span></div>
-          <div class="pdf-drop-zone" id="pdf-drop-zone">
-            <input type="file" id="pdf-file-input-modal" accept=".pdf" hidden/>
-            <div class="pdf-drop-icon">📄</div>
-            <div class="pdf-drop-title">Kéo thả hoặc nhấn chọn</div>
-            <div class="pdf-drop-sub">File PDF đề thi V-SAT</div>
+
+      <!-- ── MODE TABS ── -->
+      <div class="import-mode-tabs">
+        <button class="imt-tab active" data-mode="pdf" id="tab-pdf">📄 PDF đề thi</button>
+        <button class="imt-tab" data-mode="json-pdf" id="tab-json-pdf">✨ JSON + PDF</button>
+      </div>
+
+      <!-- ══ MODE: PDF thuần (cũ) ══ -->
+      <div id="import-mode-pdf" class="import-mode-panel">
+        <div class="pdf-upload-row">
+          <div class="pdf-upload-col">
+            <div class="pdf-col-label">📄 File đề thi <span class="pdf-col-required">*</span></div>
+            <div class="pdf-drop-zone" id="pdf-drop-zone">
+              <input type="file" id="pdf-file-input-modal" accept=".pdf" hidden/>
+              <div class="pdf-drop-icon">📄</div>
+              <div class="pdf-drop-title">Kéo thả hoặc nhấn chọn</div>
+              <div class="pdf-drop-sub">File PDF đề thi V-SAT</div>
+            </div>
+            <div class="pdf-status-row">
+              <span id="pdf-import-status" class="pdf-status-text"></span>
+              <span id="pdf-parsed-count" class="pdf-count-badge"></span>
+            </div>
           </div>
-          <div class="pdf-status-row">
-            <span id="pdf-import-status" class="pdf-status-text"></span>
-            <span id="pdf-parsed-count" class="pdf-count-badge"></span>
-          </div>
-        </div>
-        <div class="pdf-upload-sep">+</div>
-        <div class="pdf-upload-col">
-          <div class="pdf-col-label">🔑 File đáp án <span class="pdf-col-optional">(tuỳ chọn)</span></div>
-          <div class="pdf-drop-zone pdf-ans-zone" id="pdf-ans-drop-zone">
-            <input type="file" id="pdf-ans-file-input" accept=".pdf" hidden/>
-            <div class="pdf-drop-icon">🔑</div>
-            <div class="pdf-drop-title">Kéo thả hoặc nhấn chọn</div>
-            <div class="pdf-drop-sub">File PDF đáp án V-SAT</div>
-          </div>
-          <div class="pdf-status-row">
-            <span id="pdf-ans-status" class="pdf-status-text"></span>
-            <span id="pdf-ans-badge" class="pdf-count-badge pdf-ans-badge hidden"></span>
+          <div class="pdf-upload-sep">+</div>
+          <div class="pdf-upload-col">
+            <div class="pdf-col-label">🔑 File đáp án <span class="pdf-col-optional">(tuỳ chọn)</span></div>
+            <div class="pdf-drop-zone pdf-ans-zone" id="pdf-ans-drop-zone">
+              <input type="file" id="pdf-ans-file-input" accept=".pdf" hidden/>
+              <div class="pdf-drop-icon">🔑</div>
+              <div class="pdf-drop-title">Kéo thả hoặc nhấn chọn</div>
+              <div class="pdf-drop-sub">File PDF đáp án V-SAT</div>
+            </div>
+            <div class="pdf-status-row">
+              <span id="pdf-ans-status" class="pdf-status-text"></span>
+              <span id="pdf-ans-badge" class="pdf-count-badge pdf-ans-badge hidden"></span>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- ══ MODE: JSON + PDF ══ -->
+      <div id="import-mode-json-pdf" class="import-mode-panel hidden">
+        <div class="jspdf-info">
+          <b>✨ Workflow:</b> Dùng Google AI Studio convert PDF → JSON, rồi nhập JSON vào đây.
+          Web sẽ quét PDF để lấy đáp án và phát hiện trang có đồ thị/hình vẽ để bạn crop.
+        </div>
+        <div class="pdf-upload-row">
+          <!-- JSON -->
+          <div class="pdf-upload-col">
+            <div class="pdf-col-label">📋 File JSON câu hỏi <span class="pdf-col-required">*</span></div>
+            <div class="pdf-drop-zone" id="jspdf-json-zone">
+              <input type="file" id="jspdf-json-input" accept=".json" hidden/>
+              <div class="pdf-drop-icon">📋</div>
+              <div class="pdf-drop-title">Kéo thả hoặc nhấn chọn</div>
+              <div class="pdf-drop-sub">File JSON từ AI Studio</div>
+            </div>
+            <div class="pdf-status-row">
+              <span id="jspdf-json-status" class="pdf-status-text"></span>
+              <span id="jspdf-json-badge" class="pdf-count-badge hidden"></span>
+            </div>
+          </div>
+          <div class="pdf-upload-sep">+</div>
+          <!-- PDF -->
+          <div class="pdf-upload-col">
+            <div class="pdf-col-label">📄 File PDF gốc <span class="pdf-col-optional">(để quét đáp án + trang đồ thị)</span></div>
+            <div class="pdf-drop-zone" id="jspdf-pdf-zone">
+              <input type="file" id="jspdf-pdf-input" accept=".pdf" hidden/>
+              <div class="pdf-drop-icon">📄</div>
+              <div class="pdf-drop-title">Kéo thả hoặc nhấn chọn</div>
+              <div class="pdf-drop-sub">File PDF đề thi gốc</div>
+            </div>
+            <div class="pdf-status-row">
+              <span id="jspdf-pdf-status" class="pdf-status-text"></span>
+              <span id="jspdf-pdf-badge" class="pdf-count-badge hidden"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PREVIEW CHUNG ── -->
       <div id="pdf-preview-area" class="hidden">
         <div class="pdf-stats-row">
           <div class="pdf-stat-card tf">Đúng/Sai <span id="pdf-stat-tf">0</span></div>
           <div class="pdf-stat-card mcq">Trắc nghiệm <span id="pdf-stat-mcq">0</span></div>
           <div class="pdf-stat-card match">Ghép cột <span id="pdf-stat-match">0</span></div>
           <div class="pdf-stat-card short">Trả lời ngắn <span id="pdf-stat-short">0</span></div>
+          <div class="pdf-stat-card" style="background:var(--surface);border:1px solid var(--border)">
+            🖼️ Cần ảnh <span id="pdf-stat-needimg" style="color:var(--warning,#f59e0b)">0</span>
+          </div>
         </div>
         <div class="pdf-select-row">
           <span class="pdf-select-label">Chọn câu để thêm:</span>
@@ -529,5 +582,6 @@
 
 <script src="exam.js"></script>
 <script src="pdf-import.js"></script>
+<script src="gemini-import.js"></script>
 </body>
 </html>
