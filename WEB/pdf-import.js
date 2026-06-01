@@ -951,6 +951,11 @@ function hasImageRef(q) {
 //  CONFIRM IMPORT
 // ══════════════════════════════════════════
 function confirmPdfImport() {
+  // Trong mode JSON+PDF, đảm bảo _parsedQuestions được sync từ _jspdfQuestions
+  if (_importMode === 'json-pdf' && _jspdfQuestions.length > 0 && !_parsedQuestions.length) {
+    _parsedQuestions = _jspdfQuestions.map(q => ({ ...q }));
+  }
+
   if (!_parsedQuestions.length) return;
   const checked = document.querySelectorAll('.pdf-prev-check:checked');
   const selectedIdxs = new Set([...checked].map(c => parseInt(c.dataset.idx)));
@@ -963,7 +968,10 @@ function confirmPdfImport() {
   if (!toAdd.length) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
 
   // Đọc mode TRƯỚC khi đóng modal
-  const savingToSets = !!_setsImportMode;
+  // Dùng title modal làm fallback vì _setsImportMode có thể bị override
+  const titleEl2 = document.querySelector('#pdf-import-modal .modal-header h3');
+  const titleText = titleEl2 ? titleEl2.textContent : '';
+  const savingToSets = !!_setsImportMode || titleText.includes('Kho đề');
   closePdfImportModal();
 
   // ── Lưu vào kho đề → mở modal đặt tên + môn ──
