@@ -1195,6 +1195,8 @@ function handleBankImport(e) {
         if (Array.isArray(data)) qs = data;
         else if (Array.isArray(data.questions)) qs = data.questions;
         else throw new Error('Không tìm thấy mảng questions');
+        // Chuẩn hóa format AI Studio (T/F → D/S, Ⓐ → index...)
+        if (typeof normalizeAIStudioJSON === 'function') qs = normalizeAIStudioJSON(qs);
         const subject = data.metadata?.subject || data.subject || 'Toán';
         const valid = ['truefalse','mcq','matching','short'];
         qs.forEach(q => {
@@ -1648,6 +1650,8 @@ function handleSetsImport(e) {
       if (Array.isArray(data)) qs = data;
       else if (Array.isArray(data.questions)) qs = data.questions;
       else throw new Error('Không tìm thấy mảng questions');
+      // Chuẩn hóa format AI Studio (T/F → D/S, Ⓐ → index...)
+      if (typeof normalizeAIStudioJSON === 'function') qs = normalizeAIStudioJSON(qs);
       const name    = data.title || file.name.replace('.json','');
       const time    = data.time || 90;
       const subject = data.metadata?.subject || data.subject || 'Toán';
