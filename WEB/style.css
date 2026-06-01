@@ -1901,3 +1901,127 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
   line-height: 1.5;
 }
 .jspdf-info b { color: var(--accent, #6366f1); }
+
+/* ══════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════ */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0,0,0,.08);
+}
+
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--accent, #6366f1);
+  border-radius: 14px;
+  color: #fff;
+  margin-bottom: 1.2rem;
+}
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 .4rem;
+}
+
+.auth-sub {
+  font-size: .85rem;
+  color: var(--text-muted);
+  margin: 0 0 2rem;
+}
+
+.auth-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.auth-google-btn:hover { background: var(--bg); border-color: var(--accent, #6366f1); }
+.auth-google-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.auth-error {
+  margin-top: 1rem;
+  padding: .6rem .8rem;
+  background: rgba(239,68,68,.08);
+  border: 1px solid rgba(239,68,68,.2);
+  border-radius: 8px;
+  font-size: .8rem;
+  color: #ef4444;
+}
+
+.auth-loading {
+  margin-top: 1rem;
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+
+/* Sidebar user info */
+.dash-user-info {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .6rem;
+  border-radius: 8px;
+  background: var(--bg);
+  margin-bottom: .5rem;
+  overflow: hidden;
+}
+
+.dash-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-username {
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-logout-btn {
+  width: 100%;
+  padding: .5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
+  margin-top: .3rem;
+}
+.dash-logout-btn:hover { background: rgba(239,68,68,.08); color: #ef4444; border-color: rgba(239,68,68,.3); }

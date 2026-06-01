@@ -334,6 +334,87 @@ async function _initFirebaseSync(forceRefresh=false) {
 }
 
 // ══════════════════════════════════════════
+//  AUTH GUARD — Google Login bắt buộc
+// ══════════════════════════════════════════
+
+// Danh sách Gmail được phép vào dashboard
+// Thêm email của bạn vào đây
+const ALLOWED_EMAILS = [
+  'thiennhan@gmail.com',        // thay bằng email thực của bạn
+  'nyeagerhub@gmail.com',
+];
+
+function isEmailAllowed(email) {
+  if (!email) return false;
+  // Cho phép tất cả nếu ALLOWED_EMAILS rỗng
+  if (!ALLOWED_EMAILS.length) return true;
+  return ALLOWED_EMAILS.some(e => e.toLowerCase() === email.toLowerCase());
+}
+
+function initAuthScreen() {
+  if (!initFirebase()) return;
+
+  const authBtn     = document.getElementById('auth-google-btn');
+  const authError   = document.getElementById('auth-error');
+  const authLoading = document.getElementById('auth-loading');
+
+  authBtn.addEventListener('click', async () => {
+    authError.classList.add('hidden');
+    authLoading.classList.remove('hidden');
+    authBtn.disabled = true;
+    try {
+      const result = await _auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      const email  = result.user.email;
+      if (!isEmailAllowed(email)) {
+        await _auth.signOut();
+        authError.textContent = `Tài khoản ${email} không có quyền truy cập.`;
+        authError.classList.remove('hidden');
+        authLoading.classList.add('hidden');
+        authBtn.disabled = false;
+        return;
+      }
+      // Đăng nhập thành công → vào dashboard
+      onAuthSuccess(result.user);
+    } catch(e) {
+      if (e.code !== 'auth/popup-closed-by-user') {
+        authError.textContent = 'Đăng nhập thất bại: ' + e.message;
+        authError.classList.remove('hidden');
+      }
+      authLoading.classList.add('hidden');
+      authBtn.disabled = false;
+    }
+  });
+
+  // Kiểm tra session hiện tại
+  _auth.onAuthStateChanged(user => {
+    if (user && isEmailAllowed(user.email)) {
+      onAuthSuccess(user);
+    } else {
+      authLoading.classList.add('hidden');
+      showScreen('auth-screen');
+    }
+  });
+}
+
+function onAuthSuccess(user) {
+  _currentUser = user;
+  // Hiện tên user ở sidebar
+  const userEl = document.getElementById('dash-user-info');
+  if (userEl) {
+    userEl.innerHTML = `
+      <img src="${user.photoURL||''}" class="dash-avatar" onerror="this.style.display='none'"/>
+      <span class="dash-username">${escH(user.displayName || user.email)}</span>`;
+  }
+  showScreen('dashboard-screen');
+  renderSets();
+  renderBankList();
+  renderConfigTab();
+  renderHistory();
+  populateSubjectFilters();
+  _initFirebaseSync();
+}
+
+// ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -344,6 +425,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchDashPanel(btn.dataset.panel))
   );
   document.getElementById('dash-start-btn').addEventListener('click', gotoLogin);
+  document.getElementById('dash-logout-btn').addEventListener('click', async () => {
+    if (_auth) await _auth.signOut();
+    showScreen('auth-screen');
+  });
 
   // Sets panel
   document.getElementById('sets-import-btn').addEventListener('click', () =>
@@ -377,8 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bank-filter-type').addEventListener('change', renderBankList);
   document.getElementById('bank-filter-subject').addEventListener('change', renderBankList);
   document.getElementById('bank-search').addEventListener('input', renderBankList);
-  // bank-pdf-btn handler is registered in pdf-import.js initPdfImport()
-  // But we need to set _setsImportMode = false before opening
   document.getElementById('bank-pdf-btn').addEventListener('click', () => {
     _setsImportMode = false;
     openPdfImportModal(false);
@@ -408,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('set-qedit-cancel').addEventListener('click', closeSetQEdit);
   document.getElementById('set-qedit-save').addEventListener('click', saveSetQEdit);
 
-  // Login
+  // Login (exam)
   document.getElementById('login-btn').addEventListener('click', handleLogin);
   document.getElementById('google-login-btn').addEventListener('click', googleLogin);
   document.getElementById('file-input-login').addEventListener('change', handleFileInputLogin);
@@ -433,17 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('answer-editor-cancel').addEventListener('click', closeAnswerEditor);
   document.getElementById('answer-editor-save').addEventListener('click', saveAnswerKey);
 
-  // Render initial
-  renderSets();
-  renderBankList();
-  renderConfigTab();
-  renderHistory();
-  populateSubjectFilters();
-
-  setTimeout(() => {
-    initFirebase();
-    _initFirebaseSync();
-  }, 500);
+  // Khởi động Firebase Auth — auth screen là màn hình đầu tiên
+  initFirebase();
+  initAuthScreen();
 });
 
 // ══════════════════════════════════════════
