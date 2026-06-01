@@ -15,6 +15,12 @@ let pdfJsLoaded = false;
 let _pdfPageCanvases = [];   // Array<HTMLCanvasElement>
 let _pdfDoc = null;          // pdfjsLib document
 
+// Expose để exam.js có thể đọc số trang sau khi render
+Object.defineProperty(window, '_pdfPageCanvases', {
+  get: () => _pdfPageCanvases,
+  configurable: true
+});
+
 /**
  * Render tất cả trang PDF thành canvas (scale 2x để rõ nét)
  */
@@ -1178,6 +1184,7 @@ function closeCropModal() {
   document.getElementById('pdf-crop-modal').classList.add('hidden');
   _cropTargetIdx = -1;
   _cropRect = null;
+  _cropContext = 'import'; // reset về default
 }
 
 function renderCropCanvas(pageIdx) {
@@ -1279,6 +1286,9 @@ function showCropPreview() {
   document.getElementById('crop-result-wrap').classList.remove('hidden');
 }
 
+// Context cho crop: 'import' | 'bankEdit' | 'setQEdit'
+let _cropContext = 'import';
+
 function confirmCrop() {
   if (_cropTargetIdx < 0 || !_cropRect) return;
 
@@ -1290,6 +1300,27 @@ function confirmCrop() {
   const dataUrl = cropCanvasRegion(_cropPageIdx, ax, ay, aw, ah);
   if (!dataUrl) return;
 
+  if (_cropContext === 'bankEdit') {
+    // Ghi vào preview trong bank edit modal
+    window._pendingEditImage = dataUrl;
+    const wrap = document.getElementById('bedit-img-wrap');
+    const prev = document.getElementById('bedit-img-preview');
+    if (wrap && prev) { prev.src = dataUrl; wrap.classList.remove('hidden'); }
+    closeCropModal();
+    return;
+  }
+
+  if (_cropContext === 'setQEdit') {
+    // Ghi vào preview trong set question edit modal
+    window._pendingEditImage = dataUrl;
+    const wrap = document.getElementById('sqedit-img-wrap');
+    const prev = document.getElementById('sqedit-img-preview');
+    if (wrap && prev) { prev.src = dataUrl; wrap.classList.remove('hidden'); }
+    closeCropModal();
+    return;
+  }
+
+  // Default: import flow
   _parsedQuestions[_cropTargetIdx]._image = dataUrl;
   closeCropModal();
   renderPdfPreview(_parsedQuestions);

@@ -1521,6 +1521,7 @@ function checkQuestionHasAnswer(q) {
 function openBankEdit(idx) {
   bankEditIdx = idx;
   const q = bank[idx];
+  window._pendingEditImage = undefined; // reset pending image
   document.getElementById('bank-edit-title').textContent = `✏️ Sửa câu hỏi [${typeFull(q.type)}]`;
 
   let html = `<div class="bedit-group">
@@ -1532,6 +1533,24 @@ function openBankEdit(idx) {
   <div class="bedit-group">
     <label class="bedit-label">Câu hỏi</label>
     <textarea class="bedit-textarea" id="bedit-question" rows="4">${escH(q.question)}</textarea>
+  </div>
+  <div class="bedit-group">
+    <label class="bedit-label">🖼️ Ảnh minh hoạ</label>
+    <div id="bedit-img-wrap" class="${q.image ? '' : 'hidden'}" style="margin-bottom:.5rem">
+      <img id="bedit-img-preview" src="${q.image||''}" style="max-width:100%;max-height:220px;border-radius:6px;border:1px solid var(--border)"/>
+      <button type="button" class="bc-btn del" style="margin-top:.3rem" onclick="beditRemoveImage()">🗑 Xóa ảnh</button>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <label class="ph-btn ph-import" style="cursor:pointer;font-size:.78rem">
+        📁 Upload ảnh
+        <input type="file" id="bedit-img-file" accept="image/*" hidden onchange="beditLoadImageFile(this)"/>
+      </label>
+      <label class="ph-btn ph-pdf" style="cursor:pointer;font-size:.78rem">
+        📄 Chọn từ PDF
+        <input type="file" id="bedit-pdf-file" accept=".pdf" hidden onchange="beditLoadPdfForCrop(this)"/>
+      </label>
+    </div>
+    <div id="bedit-pdf-status" class="pdf-status-text hidden" style="margin-top:.4rem"></div>
   </div>`;
 
   if (q.type==='mcq') {
@@ -1583,6 +1602,13 @@ function saveBankEdit() {
   const q = bank[bankEditIdx];
   q.subject  = document.getElementById('bedit-subject')?.value || q.subject || 'Toán';
   q.question = document.getElementById('bedit-question')?.value.trim() || q.question;
+
+  // Lưu ảnh nếu có thay đổi
+  if (window._pendingEditImage !== undefined) {
+    if (window._pendingEditImage === null) delete q.image;
+    else q.image = window._pendingEditImage;
+    window._pendingEditImage = undefined;
+  }
 
   if (q.type==='mcq') {
     q.options = (q.options||[]).map((_,oi) => document.getElementById(`bedit-opt-${oi}`)?.value.trim() || '');
@@ -2070,6 +2096,7 @@ function openSetQEdit(setId, qIdx) {
   const q = s.questions[qIdx];
   if (!q) return;
   _setQEditSetId = setId; _setQEditQIdx = qIdx;
+  window._pendingEditImage = undefined; // reset pending image
   document.getElementById('set-qlist-modal').classList.add('hidden');
   document.getElementById('set-qedit-title').textContent = `✏️ Sửa câu ${qIdx+1} [${typeFull(q.type)}]`;
 
@@ -2077,6 +2104,27 @@ function openSetQEdit(setId, qIdx) {
     <label class="bedit-label">Câu hỏi</label>
     <textarea class="bedit-textarea" id="sqedit-question" rows="4">${escH(q.question)}</textarea>
   </div>`;
+
+  // ── Ảnh minh hoạ ──
+  html += `<div class="bedit-group">
+    <label class="bedit-label">🖼️ Ảnh minh hoạ</label>
+    <div id="sqedit-img-wrap" class="${q.image ? '' : 'hidden'}" style="margin-bottom:.5rem">
+      <img id="sqedit-img-preview" src="${q.image||''}" style="max-width:100%;max-height:220px;border-radius:6px;border:1px solid var(--border)"/>
+      <button type="button" class="bc-btn del" style="margin-top:.3rem" onclick="sqeditRemoveImage()">🗑 Xóa ảnh</button>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <label class="ph-btn ph-import" style="cursor:pointer;font-size:.78rem">
+        📁 Upload ảnh
+        <input type="file" id="sqedit-img-file" accept="image/*" hidden onchange="sqeditLoadImageFile(this)"/>
+      </label>
+      <label class="ph-btn ph-pdf" style="cursor:pointer;font-size:.78rem">
+        📄 Chọn từ PDF
+        <input type="file" id="sqedit-pdf-file" accept=".pdf" hidden onchange="sqeditLoadPdfForCrop(this)"/>
+      </label>
+    </div>
+    <div id="sqedit-pdf-status" class="pdf-status-text hidden" style="margin-top:.4rem"></div>
+  </div>`;
+
   if (q.type==='mcq') {
     html += (q.options||[]).map((opt,oi) => `<div class="bedit-group">
       <label class="bedit-label">Phương án ${ALPHA[oi]}</label>
@@ -2123,6 +2171,14 @@ function saveSetQEdit() {
   if (!s || !s.questions) return;
   const q = s.questions[_setQEditQIdx];
   q.question = document.getElementById('sqedit-question')?.value.trim() || q.question;
+
+  // Lưu ảnh nếu có thay đổi
+  if (window._pendingEditImage !== undefined) {
+    if (window._pendingEditImage === null) delete q.image;
+    else q.image = window._pendingEditImage;
+    window._pendingEditImage = undefined;
+  }
+
   if (q.type==='mcq') {
     q.options = (q.options||[]).map((_,oi) => document.getElementById(`sqedit-opt-${oi}`)?.value.trim()||'');
     const ans = document.getElementById('sqedit-answer')?.value;
@@ -2318,4 +2374,88 @@ function closeSetAnswerEditor() {
   const modal = document.getElementById('set-ans-editor-modal');
   if (modal) modal.classList.add('hidden');
   _ansEditSetId = null;
+}
+
+// ══════════════════════════════════════════
+//  IMAGE EDIT HELPERS — Bank Edit
+// ══════════════════════════════════════════
+
+function beditRemoveImage() {
+  window._pendingEditImage = null;
+  const wrap = document.getElementById('bedit-img-wrap');
+  const prev = document.getElementById('bedit-img-preview');
+  if (wrap) wrap.classList.add('hidden');
+  if (prev) prev.src = '';
+}
+
+function beditLoadImageFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    window._pendingEditImage = ev.target.result;
+    const wrap = document.getElementById('bedit-img-wrap');
+    const prev = document.getElementById('bedit-img-preview');
+    if (wrap && prev) { prev.src = ev.target.result; wrap.classList.remove('hidden'); }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+async function beditLoadPdfForCrop(input) {
+  const file = input.files[0]; if (!file) return;
+  input.value = '';
+  const statusEl = document.getElementById('bedit-pdf-status');
+  statusEl.textContent = '⏳ Đang render PDF...';
+  statusEl.classList.remove('hidden');
+  try {
+    await renderPdfToCanvases(file);
+    statusEl.textContent = `✅ ${window._pdfPageCanvases?.length || 0} trang — kéo chọn vùng ảnh`;
+    // Set context và mở crop modal
+    window._cropContext = 'bankEdit';
+    openCropModal(0, 0);
+  } catch(e) {
+    statusEl.textContent = '❌ Lỗi: ' + e.message;
+  }
+}
+
+// ══════════════════════════════════════════
+//  IMAGE EDIT HELPERS — Set Question Edit
+// ══════════════════════════════════════════
+
+function sqeditRemoveImage() {
+  window._pendingEditImage = null;
+  const wrap = document.getElementById('sqedit-img-wrap');
+  const prev = document.getElementById('sqedit-img-preview');
+  if (wrap) wrap.classList.add('hidden');
+  if (prev) prev.src = '';
+}
+
+function sqeditLoadImageFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    window._pendingEditImage = ev.target.result;
+    const wrap = document.getElementById('sqedit-img-wrap');
+    const prev = document.getElementById('sqedit-img-preview');
+    if (wrap && prev) { prev.src = ev.target.result; wrap.classList.remove('hidden'); }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+async function sqeditLoadPdfForCrop(input) {
+  const file = input.files[0]; if (!file) return;
+  input.value = '';
+  const statusEl = document.getElementById('sqedit-pdf-status');
+  statusEl.textContent = '⏳ Đang render PDF...';
+  statusEl.classList.remove('hidden');
+  try {
+    await renderPdfToCanvases(file);
+    statusEl.textContent = `✅ ${window._pdfPageCanvases?.length || 0} trang — kéo chọn vùng ảnh`;
+    // Set context và mở crop modal
+    window._cropContext = 'setQEdit';
+    openCropModal(0, 0);
+  } catch(e) {
+    statusEl.textContent = '❌ Lỗi: ' + e.message;
+  }
 }
