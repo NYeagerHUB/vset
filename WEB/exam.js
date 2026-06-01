@@ -340,8 +340,9 @@ async function _initFirebaseSync(forceRefresh=false) {
 // Danh sách Gmail được phép vào dashboard
 // Thêm email của bạn vào đây
 const ALLOWED_EMAILS = [
-  'tn2431814@gmail.com',        // thay bằng email thực của bạn
+  'tn2431814@gmail.com',
   'nyeagerhub@gmail.com',
+  'minhchau.meichar@gmail.com',
 ];
 
 function isEmailAllowed(email) {
