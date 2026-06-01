@@ -1521,22 +1521,103 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
 /* ── Toast error variant ── */
 .pdf-toast.toast-error{background:#e53e3e}
 
-/* ── Sets grid ── */
-.sets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.85rem}
-.set-card{background:var(--dash-panel-bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;display:flex;flex-direction:column;gap:.55rem;transition:border-color .15s}
-.set-card:hover{border-color:var(--bi-border)}
-.set-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
-.set-card-name{font-size:.92rem;font-weight:700;color:var(--text);flex:1;line-height:1.35}
-.set-card-actions{display:flex;gap:.25rem;flex-shrink:0}
-.set-card-meta{display:flex;flex-wrap:wrap;gap:.35rem .6rem;font-size:.76rem;color:var(--text-muted)}
-.set-meta-item{display:flex;align-items:center;gap:.2rem}
-.set-meta-time{color:var(--tf-color)}
-.set-meta-date{margin-left:auto;font-family:var(--mono);font-size:.72rem}
-.set-card-types{display:flex;flex-wrap:wrap;gap:.3rem}
-.set-card-footer{margin-top:.2rem}
-.set-start-btn{width:100%;background:var(--accent);color:#fff;border:none;padding:.5rem;border-radius:var(--radius);font-family:var(--sans);font-size:.84rem;font-weight:700;cursor:pointer;transition:opacity .2s}
-.set-start-btn:hover{opacity:.87}
-.sets-empty-state{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:3rem;text-align:center}
+/* ── Sets subject tabs ── */
+.sets-subject-tabs {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: wrap;
+  margin-bottom: .9rem;
+  padding-bottom: .7rem;
+  border-bottom: 1px solid var(--border);
+}
+.sets-stab {
+  background: var(--content-bg);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: .28rem .75rem;
+  font-family: var(--sans);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+.sets-stab:hover { border-color: var(--accent); color: var(--accent); }
+.sets-stab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Set card — layout ngang ── */
+.sets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.set-card {
+  background: var(--dash-panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+.set-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+.set-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .35rem; }
+.set-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; flex-shrink: 0; }
+
+.set-card-name { font-size: .92rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+
+.set-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem .7rem;
+  font-size: .76rem;
+  color: var(--text-muted);
+}
+.set-meta-subj {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light, rgba(99,102,241,.1));
+  padding: .1rem .45rem;
+  border-radius: 4px;
+}
+.set-meta-item { display: flex; align-items: center; gap: .2rem; }
+.set-meta-time { color: var(--tf-color); }
+.set-meta-date { font-family: var(--mono); font-size: .7rem; color: var(--text-muted); }
+
+.set-card-types { display: flex; flex-wrap: wrap; gap: .25rem; }
+
+.set-card-actions { display: flex; gap: .25rem; }
+
+.set-start-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: .42rem .9rem;
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .2s;
+  white-space: nowrap;
+}
+.set-start-btn:hover { opacity: .87; }
+
+.sets-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  padding: 3rem;
+  text-align: center;
+}
 
 /* ── Modal styles ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}

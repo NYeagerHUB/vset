@@ -780,15 +780,17 @@ async function handlePdfLoginInput(e) {
 }
 
 // ══════════════════════════════════════════
-//  BANK DRAW (theo môn nếu có)
-//  Logic: bốc TỐI ĐA số câu có thể từ ngân hàng.
-//  Nếu ngân hàng có ít hơn số cần → bốc hết những gì có (không báo lỗi).
-//  Chỉ báo lỗi khi pool hoàn toàn trống.
+//  BANK DRAW — Chuẩn cấu trúc V-SAT 2025
+//  Phần I  (câu 1-9):   9 Đúng/Sai
+//  Phần II (câu 10-15): 6 Trắc nghiệm
+//  Phần III(câu 16-20): 5 Ghép cột  (nếu có)
+//  Phần IV (câu 21-25): 5 Trả lời ngắn
 // ══════════════════════════════════════════
+const VSAT_STRUCTURE = { truefalse: 9, mcq: 6, matching: 5, short: 5 };
+
 function drawFromBank(preferSubject='') {
   if (!bank.length) return null;
 
-  // Lọc theo môn: config.subject ưu tiên hơn subject từ login
   const subjectFilter = config.subject || preferSubject || '';
   const pool = subjectFilter
     ? bank.filter(q => (q.subject||'Khác')===subjectFilter)
@@ -799,8 +801,9 @@ function drawFromBank(preferSubject='') {
   const byType = {mcq:[], truefalse:[], short:[], matching:[]};
   pool.forEach(q => { if (byType[q.type]) byType[q.type].push(q); });
 
-  // Số câu cần bốc theo config — nếu ngân hàng có ít hơn thì bốc hết
-  const need = {
+  // Dùng cấu trúc V-SAT chuẩn, config chỉ override nếu user đã tùy chỉnh
+  const useVSAT = (config.truefalse === 11 && config.mcq === 9 && config.short === 5);
+  const need = useVSAT ? VSAT_STRUCTURE : {
     mcq:       config.mcq,
     truefalse: config.truefalse,
     short:     config.short,
@@ -809,18 +812,20 @@ function drawFromBank(preferSubject='') {
 
   const shuffle = arr => [...arr].sort(() => Math.random() - .5);
   let qs = [];
+  // Thứ tự theo cấu trúc V-SAT: TF → MCQ → Matching → Short
   ['truefalse','mcq','matching','short'].forEach(t => {
     const want = need[t] || 0;
     if (want <= 0) return;
-    const available = byType[t];
-    // Bốc min(want, available.length) — không báo lỗi khi thiếu
-    const take = Math.min(want, available.length);
-    if (take > 0) qs.push(...shuffle(available).slice(0, take));
+    const take = Math.min(want, byType[t].length);
+    if (take > 0) qs.push(...shuffle(byType[t]).slice(0, take));
   });
 
-  if (!qs.length) return null;  // pool có câu nhưng không match loại nào cần
+  if (!qs.length) return null;
 
-  return shuffle(qs);
+  // Giữ đúng thứ tự V-SAT, không shuffle lại toàn bộ
+  const order = ['truefalse','mcq','matching','short'];
+  qs.sort((a,b) => order.indexOf(a.type) - order.indexOf(b.type));
+  return qs;
 }
 
 // ══════════════════════════════════════════
@@ -1664,15 +1669,29 @@ function renderHistory() {
 //  SETS (KHO ĐỀ)
 // ══════════════════════════════════════════
 let _setsImportMode = false;
+let _setsSubjectFilter = ''; // tab môn đang chọn trong kho đề
 
 function renderSets() {
   const grid    = document.getElementById('sets-grid');
   const emptyEl = document.getElementById('sets-empty-state');
   if (!grid) return;
-  if (!sets.length) { emptyEl.style.display=''; grid.innerHTML=''; return; }
+
+  // Render tabs môn học
+  _renderSetsTabs();
+
+  // Lọc theo môn đang chọn
+  const filtered = _setsSubjectFilter
+    ? sets.filter(s => (s.subject || s.metadata?.subject || 'Khác') === _setsSubjectFilter)
+    : sets;
+
+  if (!filtered.length) {
+    emptyEl.style.display = '';
+    grid.innerHTML = '';
+    return;
+  }
   emptyEl.style.display = 'none';
 
-  grid.innerHTML = sets.map((s,idx) => {
+  grid.innerHTML = filtered.map((s) => {
     const cnt    = s.questions ? s.questions.length : 0;
     const byType = {mcq:0,truefalse:0,short:0,matching:0};
     (s.questions||[]).forEach(q => { if (byType[q.type]!==undefined) byType[q.type]++; });
@@ -1682,34 +1701,83 @@ function renderSets() {
     const subj    = s.subject || s.metadata?.subject || '';
 
     return `<div class="set-card" id="set-card-${s.id}">
-      <div class="set-card-header">
+      <div class="set-card-left">
         <div class="set-card-name">${escH(s.name)}</div>
-        <div class="set-card-actions">
-          <button class="bc-btn" onclick="openSetQList('${s.id}')" title="Xem & sửa câu hỏi">📋</button>
-          <button class="bc-btn" onclick="renameSet('${s.id}')" title="Đổi tên">✏️</button>
-          <button class="bc-btn" onclick="exportSet('${s.id}')" title="Xuất JSON">⬇️</button>
-          <button class="bc-btn" onclick="addSetToBank('${s.id}')" title="Thêm vào ngân hàng">📥</button>
-          <button class="bc-btn del" onclick="deleteSet('${s.id}')" title="Xóa bộ đề">🗑</button>
+        <div class="set-card-meta">
+          ${subj ? `<span class="set-meta-subj">${escH(subj)}</span>` : ''}
+          <span class="set-meta-item">${cnt} câu</span>
+          <span class="set-meta-item set-meta-time">${s.time||90} phút</span>
+          <span class="set-meta-item">${hasAns}/${cnt} đáp án</span>
+          <span class="set-meta-date">${dateStr}</span>
+        </div>
+        <div class="set-card-types">
+          ${byType.truefalse ? `<span class="bank-card-type truefalse">Đ/S ${byType.truefalse}</span>` : ''}
+          ${byType.mcq       ? `<span class="bank-card-type mcq">TN ${byType.mcq}</span>` : ''}
+          ${byType.matching  ? `<span class="bank-card-type matching">Ghép ${byType.matching}</span>` : ''}
+          ${byType.short     ? `<span class="bank-card-type short">TLN ${byType.short}</span>` : ''}
         </div>
       </div>
-      <div class="set-card-meta">
-        ${subj ? `<span class="set-meta-item set-meta-subj">📚 ${escH(subj)}</span>` : ''}
-        <span class="set-meta-item">📋 ${cnt} câu</span>
-        <span class="set-meta-item set-meta-time">⏱ ${s.time||90} phút</span>
-        <span class="set-meta-item">✓ ${hasAns}/${cnt} đáp án</span>
-        <span class="set-meta-date">📅 ${dateStr}</span>
-      </div>
-      <div class="set-card-types">
-        ${byType.truefalse ? `<span class="bank-card-type truefalse">Đ/S ${byType.truefalse}</span>` : ''}
-        ${byType.mcq       ? `<span class="bank-card-type mcq">TN ${byType.mcq}</span>` : ''}
-        ${byType.matching  ? `<span class="bank-card-type matching">Ghép ${byType.matching}</span>` : ''}
-        ${byType.short     ? `<span class="bank-card-type short">TLN ${byType.short}</span>` : ''}
-      </div>
-      <div class="set-card-footer">
-        <button class="set-start-btn" onclick="startSetExam('${s.id}')">🎯 Thi theo đề này</button>
+      <div class="set-card-right">
+        <div class="set-card-actions">
+          <button class="bc-btn" onclick="openSetQList('${s.id}')" title="Xem câu hỏi">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+          </button>
+          <button class="bc-btn" onclick="renameSet('${s.id}')" title="Đổi tên">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="bc-btn" onclick="exportSet('${s.id}')" title="Xuất JSON">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button class="bc-btn" onclick="addSetToBank('${s.id}')" title="Thêm vào ngân hàng">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button class="bc-btn del" onclick="deleteSet('${s.id}')" title="Xóa">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+        <button class="set-start-btn" onclick="startSetExam('${s.id}')">Thi theo đề này</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function _renderSetsTabs() {
+  let tabsEl = document.getElementById('sets-subject-tabs');
+  if (!tabsEl) {
+    tabsEl = document.createElement('div');
+    tabsEl.id = 'sets-subject-tabs';
+    tabsEl.className = 'sets-subject-tabs';
+    const grid = document.getElementById('sets-grid');
+    grid.parentNode.insertBefore(tabsEl, grid);
+  }
+
+  const subjects = ['Toán', 'Vật Lý', 'Hóa Học', 'Ngữ Văn', 'Sinh Học', 'Lịch Sử', 'Địa Lý'];
+  const counts = {};
+  sets.forEach(s => {
+    const subj = s.subject || s.metadata?.subject || 'Khác';
+    counts[subj] = (counts[subj] || 0) + 1;
+  });
+
+  const allCount = sets.length;
+  tabsEl.innerHTML = `
+    <button class="sets-stab ${!_setsSubjectFilter ? 'active' : ''}" onclick="setSetsSubjectFilter('')">
+      Tất cả <span class="stab-cnt">${allCount}</span>
+    </button>
+    ${subjects.filter(s => counts[s]).map(s => `
+      <button class="sets-stab ${_setsSubjectFilter === s ? 'active' : ''}" onclick="setSetsSubjectFilter('${s}')">
+        ${escH(s)} <span class="stab-cnt">${counts[s]}</span>
+      </button>
+    `).join('')}
+    ${Object.keys(counts).filter(s => !subjects.includes(s) && counts[s]).map(s => `
+      <button class="sets-stab ${_setsSubjectFilter === s ? 'active' : ''}" onclick="setSetsSubjectFilter('${escH(s)}')">
+        ${escH(s)} <span class="stab-cnt">${counts[s]}</span>
+      </button>
+    `).join('')}`;
+}
+
+function setSetsSubjectFilter(subject) {
+  _setsSubjectFilter = subject;
+  renderSets();
 }
 
 async function startSetExam(setId) {
