@@ -399,7 +399,11 @@ function parseVSATAnswers(rawText) {
     .replace(/HỆ THỐNG GIÁO DỤC EMPIRE TEAM/gi, '')
     .replace(/CHINH PHỤC MỌI MIỀN KIẾN THỨC/gi, '')
     .replace(/BỘ ĐỀ ĐÁNH GIÁ NĂNG LỰC V-SAT/gi, '')
+    .replace(/BỘ ĐỀ ĐGNL V-SAT[^\n]*/gi, '')
     .replace(/\[EMPIRE TEAM\]/gi, '')
+    .replace(/---\s*PAGE\s*\d+\s*---/gi, '')   // xóa page markers
+    .replace(/Trang\s+\d+\s*/gi, '')            // xóa "Trang X"
+    .replace(/^\s*\d{1,2}\s*$/gm, '')           // xóa số trang đứng riêng
     .replace(/[ \t]+/g, ' ');
 
   // ── Tách block theo "Câu N" (hỗ trợ cả "» Câu 1." và "Câu 1:") ──
@@ -442,11 +446,9 @@ function parseVSATAnswers(rawText) {
     // ── 3. TF format THPT: "» Chọn ĐÚNG/SAI" rải rác ──
     const tfScattered = [...block.matchAll(/(?:»\s*)?Chọn\s+(ĐÚNG|SAI|đúng|sai)\b/gi)];
     if (tfScattered.length >= 2) {
-      // Lấy tối đa 4 kết quả
       const answers = tfScattered.slice(0, 4).map(sm =>
         sm[1].toUpperCase() === 'ĐÚNG' ? 'D' : 'S'
       );
-      // Pad đến 4 nếu thiếu
       while (answers.length < 4) answers.push(null);
       answerMap.set(qNum, { type: 'truefalse', answers });
       continue;
@@ -481,6 +483,19 @@ function parseVSATAnswers(rawText) {
           break;
         }
       }
+    }
+  }
+
+  // ── FALLBACK: Scan toàn bộ text tìm "Câu N ... Đ Đ S S" ──
+  // Dùng cho V-SAT khi block pattern bị cắt bởi page markers
+  const tfFallbackPattern = /(?:»\s*)?Câu\s+(\d+)[^]*?(?<![a-zA-ZĐđSs])([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])(?![a-zA-ZĐđSs])/g;
+  let tfm;
+  while ((tfm = tfFallbackPattern.exec(text)) !== null) {
+    const qNum = parseInt(tfm[1]);
+    if (!answerMap.has(qNum)) {
+      const answers = [tfm[2], tfm[3], tfm[4], tfm[5]]
+        .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
+      answerMap.set(qNum, { type: 'truefalse', answers });
     }
   }
 
