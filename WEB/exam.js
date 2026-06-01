@@ -1671,108 +1671,127 @@ function renderHistory() {
 let _setsImportMode = false;
 let _setsSubjectFilter = ''; // tab môn đang chọn trong kho đề
 
+// Lấy lịch sử làm bài theo tên đề
+function getSetHistory(setName) {
+  const hist = loadHistory();
+  return hist.filter(h => h.title && h.title.includes(setName.slice(0, 20)));
+}
+
 function renderSets() {
   const grid    = document.getElementById('sets-grid');
   const emptyEl = document.getElementById('sets-empty-state');
   if (!grid) return;
 
-  // Render tabs môn học
-  _renderSetsTabs();
-
-  // Lọc theo môn đang chọn
-  const filtered = _setsSubjectFilter
-    ? sets.filter(s => (s.subject || s.metadata?.subject || 'Khác') === _setsSubjectFilter)
-    : sets;
-
-  if (!filtered.length) {
-    emptyEl.style.display = '';
-    grid.innerHTML = '';
-    return;
-  }
+  if (!sets.length) { emptyEl.style.display=''; grid.innerHTML=''; return; }
   emptyEl.style.display = 'none';
 
-  grid.innerHTML = filtered.map((s) => {
-    const cnt    = s.questions ? s.questions.length : 0;
-    const byType = {mcq:0,truefalse:0,short:0,matching:0};
-    (s.questions||[]).forEach(q => { if (byType[q.type]!==undefined) byType[q.type]++; });
-    const d       = new Date(s.createdAt);
-    const dateStr = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
-    const hasAns  = (s.questions||[]).filter(q => checkQuestionHasAnswer(q)).length;
-    const subj    = s.subject || s.metadata?.subject || '';
+  // Nhóm theo môn
+  const SUBJECT_ORDER = ['Toán','Vật Lý','Hóa Học','Ngữ Văn','Sinh Học','Lịch Sử','Địa Lý','Khác'];
+  const grouped = {};
+  sets.forEach(s => {
+    const subj = s.subject || s.metadata?.subject || 'Khác';
+    if (!grouped[subj]) grouped[subj] = [];
+    grouped[subj].push(s);
+  });
 
-    return `<div class="set-card" id="set-card-${s.id}">
-      <div class="set-card-left">
-        <div class="set-card-name">${escH(s.name)}</div>
-        <div class="set-card-meta">
-          ${subj ? `<span class="set-meta-subj">${escH(subj)}</span>` : ''}
-          <span class="set-meta-item">${cnt} câu</span>
-          <span class="set-meta-item set-meta-time">${s.time||90} phút</span>
-          <span class="set-meta-item">${hasAns}/${cnt} đáp án</span>
-          <span class="set-meta-date">${dateStr}</span>
-        </div>
-        <div class="set-card-types">
+  // Sắp xếp môn theo thứ tự chuẩn
+  const subjKeys = [...new Set([
+    ...SUBJECT_ORDER.filter(s => grouped[s]),
+    ...Object.keys(grouped).filter(s => !SUBJECT_ORDER.includes(s))
+  ])];
+
+  let html = '';
+  subjKeys.forEach((subj, si) => {
+    const subjSets = grouped[subj];
+    const isOpen = !_setsSubjectFilter || _setsSubjectFilter === subj;
+    html += `
+    <div class="sets-accordion" id="sets-acc-${si}">
+      <button class="sets-acc-header ${isOpen ? 'open' : ''}" onclick="toggleSetsAccordion(${si})">
+        <span class="sets-acc-title">${escH(subj)}</span>
+        <span class="sets-acc-count">${subjSets.length} đề</span>
+        <svg class="sets-acc-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="sets-acc-body ${isOpen ? 'open' : ''}">
+        ${subjSets.map(s => _renderSetCard(s)).join('')}
+      </div>
+    </div>`;
+  });
+
+  grid.innerHTML = html;
+}
+
+function _renderSetCard(s) {
+  const cnt    = s.questions ? s.questions.length : 0;
+  const byType = {mcq:0,truefalse:0,short:0,matching:0};
+  (s.questions||[]).forEach(q => { if (byType[q.type]!==undefined) byType[q.type]++; });
+  const d       = new Date(s.createdAt);
+  const dateStr = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+
+  // Lịch sử làm bài
+  const hist    = getSetHistory(s.name);
+  const done    = hist.length > 0;
+  const bestScore = done ? Math.max(...hist.map(h => h.score || 0)) : null;
+  const lastScore = done ? hist[0].score : null;
+  const maxScore  = done ? (hist[0].possible || cnt * 6) : cnt * 6;
+
+  const scoreHtml = done
+    ? `<div class="sc-scores">
+        <span class="sc-score-best" title="Điểm cao nhất">${bestScore}đ</span>
+        ${hist.length > 1 ? `<span class="sc-score-last" title="Lần gần nhất">${lastScore}đ</span>` : ''}
+        <span class="sc-score-count">${hist.length} lần</span>
+       </div>`
+    : `<div class="sc-scores sc-no-score">—</div>`;
+
+  const statusHtml = done
+    ? `<span class="sc-status sc-done">Đã làm</span>`
+    : `<span class="sc-status sc-new">Chưa làm</span>`;
+
+  return `<div class="set-card" id="set-card-${s.id}" onclick="startSetExam('${s.id}')">
+    <div class="sc-top">
+      <div class="sc-top-left">
+        <div class="sc-name">${escH(s.name)}</div>
+        <div class="sc-types">
           ${byType.truefalse ? `<span class="bank-card-type truefalse">Đ/S ${byType.truefalse}</span>` : ''}
           ${byType.mcq       ? `<span class="bank-card-type mcq">TN ${byType.mcq}</span>` : ''}
           ${byType.matching  ? `<span class="bank-card-type matching">Ghép ${byType.matching}</span>` : ''}
           ${byType.short     ? `<span class="bank-card-type short">TLN ${byType.short}</span>` : ''}
+          <span class="sc-time">${s.time||90} phút</span>
         </div>
       </div>
-      <div class="set-card-right">
-        <div class="set-card-actions">
+      <div class="sc-top-right">
+        ${scoreHtml}
+      </div>
+    </div>
+    <div class="sc-bottom">
+      <span class="sc-date">${dateStr}</span>
+      <div class="sc-bottom-right">
+        <div class="sc-actions" onclick="event.stopPropagation()">
           <button class="bc-btn" onclick="openSetQList('${s.id}')" title="Xem câu hỏi">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-          </button>
-          <button class="bc-btn" onclick="renameSet('${s.id}')" title="Đổi tên">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
           </button>
           <button class="bc-btn" onclick="exportSet('${s.id}')" title="Xuất JSON">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>
-          <button class="bc-btn" onclick="addSetToBank('${s.id}')" title="Thêm vào ngân hàng">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
           <button class="bc-btn del" onclick="deleteSet('${s.id}')" title="Xóa">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
         </div>
-        <button class="set-start-btn" onclick="startSetExam('${s.id}')">Thi theo đề này</button>
+        ${statusHtml}
       </div>
-    </div>`;
-  }).join('');
+    </div>
+  </div>`;
+}
+
+function toggleSetsAccordion(idx) {
+  const header = document.querySelector(`#sets-acc-${idx} .sets-acc-header`);
+  const body   = document.querySelector(`#sets-acc-${idx} .sets-acc-body`);
+  if (!header || !body) return;
+  header.classList.toggle('open');
+  body.classList.toggle('open');
 }
 
 function _renderSetsTabs() {
-  let tabsEl = document.getElementById('sets-subject-tabs');
-  if (!tabsEl) {
-    tabsEl = document.createElement('div');
-    tabsEl.id = 'sets-subject-tabs';
-    tabsEl.className = 'sets-subject-tabs';
-    const grid = document.getElementById('sets-grid');
-    grid.parentNode.insertBefore(tabsEl, grid);
-  }
-
-  const subjects = ['Toán', 'Vật Lý', 'Hóa Học', 'Ngữ Văn', 'Sinh Học', 'Lịch Sử', 'Địa Lý'];
-  const counts = {};
-  sets.forEach(s => {
-    const subj = s.subject || s.metadata?.subject || 'Khác';
-    counts[subj] = (counts[subj] || 0) + 1;
-  });
-
-  const allCount = sets.length;
-  tabsEl.innerHTML = `
-    <button class="sets-stab ${!_setsSubjectFilter ? 'active' : ''}" onclick="setSetsSubjectFilter('')">
-      Tất cả <span class="stab-cnt">${allCount}</span>
-    </button>
-    ${subjects.filter(s => counts[s]).map(s => `
-      <button class="sets-stab ${_setsSubjectFilter === s ? 'active' : ''}" onclick="setSetsSubjectFilter('${s}')">
-        ${escH(s)} <span class="stab-cnt">${counts[s]}</span>
-      </button>
-    `).join('')}
-    ${Object.keys(counts).filter(s => !subjects.includes(s) && counts[s]).map(s => `
-      <button class="sets-stab ${_setsSubjectFilter === s ? 'active' : ''}" onclick="setSetsSubjectFilter('${escH(s)}')">
-        ${escH(s)} <span class="stab-cnt">${counts[s]}</span>
-      </button>
-    `).join('')}`;
+  // Không cần tabs riêng nữa — dùng accordion
 }
 
 function setSetsSubjectFilter(subject) {

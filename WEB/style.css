@@ -1521,94 +1521,121 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
 /* ── Toast error variant ── */
 .pdf-toast.toast-error{background:#e53e3e}
 
-/* ── Sets subject tabs ── */
-.sets-subject-tabs {
-  display: flex;
-  gap: .35rem;
-  flex-wrap: wrap;
-  margin-bottom: .9rem;
-  padding-bottom: .7rem;
-  border-bottom: 1px solid var(--border);
-}
-.sets-stab {
-  background: var(--content-bg);
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  padding: .28rem .75rem;
-  font-family: var(--sans);
-  font-size: .78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all .15s;
+/* ══════════════════════════════════════════
+   SETS — ACCORDION + CARD MỚI
+══════════════════════════════════════════ */
+.sets-grid { display: flex; flex-direction: column; gap: .5rem; }
+
+/* Accordion môn học */
+.sets-accordion { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+
+.sets-acc-header {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: .3rem;
+  gap: .6rem;
+  padding: .75rem 1rem;
+  background: var(--surface, #f8f9fa);
+  border: none;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: left;
+  transition: background .15s;
 }
-.sets-stab:hover { border-color: var(--accent); color: var(--accent); }
-.sets-stab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sets-acc-header:hover { background: var(--bg); }
+.sets-acc-title { flex: 1; }
+.sets-acc-count { font-size: .75rem; font-weight: 600; color: var(--text-muted); font-family: var(--mono); }
+.sets-acc-arrow { transition: transform .2s; flex-shrink: 0; color: var(--text-muted); }
+.sets-acc-header.open .sets-acc-arrow { transform: rotate(180deg); }
 
-/* ── Set card — layout ngang ── */
-.sets-grid {
+.sets-acc-body { display: none; flex-direction: column; gap: 0; }
+.sets-acc-body.open { display: flex; }
+
+/* Set card — 4 góc */
+.set-card {
+  background: var(--dash-panel-bg, #fff);
+  border-top: 1px solid var(--border);
+  padding: .8rem 1rem;
+  cursor: pointer;
+  transition: background .12s;
   display: flex;
   flex-direction: column;
-  gap: .6rem;
+  gap: .5rem;
 }
-.set-card {
-  background: var(--dash-panel-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: .85rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: border-color .15s, box-shadow .15s;
-}
-.set-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.set-card:hover { background: var(--bg); }
+.set-card:last-child { border-radius: 0 0 var(--radius) var(--radius); }
 
-.set-card-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .35rem; }
-.set-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; flex-shrink: 0; }
+/* Top row: tên trái, điểm phải */
+.sc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sc-top-left { flex: 1; min-width: 0; }
+.sc-top-right { flex-shrink: 0; text-align: right; }
 
-.set-card-name { font-size: .92rem; font-weight: 700; color: var(--text); line-height: 1.3; }
-
-.set-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .3rem .7rem;
-  font-size: .76rem;
-  color: var(--text-muted);
-}
-.set-meta-subj {
-  font-size: .72rem;
+.sc-name {
+  font-size: .88rem;
   font-weight: 700;
-  color: var(--accent);
-  background: var(--accent-light, rgba(99,102,241,.1));
-  padding: .1rem .45rem;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: .3rem;
+}
+.sc-types { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
+.sc-time {
+  font-size: .72rem;
+  color: var(--text-muted);
+  padding: .1rem .4rem;
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
-.set-meta-item { display: flex; align-items: center; gap: .2rem; }
-.set-meta-time { color: var(--tf-color); }
-.set-meta-date { font-family: var(--mono); font-size: .7rem; color: var(--text-muted); }
 
-.set-card-types { display: flex; flex-wrap: wrap; gap: .25rem; }
-
-.set-card-actions { display: flex; gap: .25rem; }
-
-.set-start-btn {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: .42rem .9rem;
-  border-radius: var(--radius);
-  font-family: var(--sans);
-  font-size: .8rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity .2s;
-  white-space: nowrap;
+/* Điểm */
+.sc-scores { display: flex; align-items: center; gap: .4rem; }
+.sc-score-best {
+  font-size: .9rem;
+  font-weight: 800;
+  color: var(--accent, #6366f1);
+  font-family: var(--mono);
 }
-.set-start-btn:hover { opacity: .87; }
+.sc-score-last {
+  font-size: .75rem;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+.sc-score-count {
+  font-size: .68rem;
+  color: var(--text-muted);
+  background: var(--border);
+  padding: .1rem .35rem;
+  border-radius: 99px;
+}
+.sc-no-score { color: var(--text-muted); font-size: .82rem; }
+
+/* Bottom row: ngày trái, actions + status phải */
+.sc-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+.sc-date { font-size: .7rem; color: var(--text-muted); font-family: var(--mono); }
+.sc-bottom-right { display: flex; align-items: center; gap: .5rem; }
+.sc-actions { display: flex; gap: .2rem; }
+
+.sc-status {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .15rem .5rem;
+  border-radius: 99px;
+}
+.sc-done {
+  background: rgba(34,197,94,.12);
+  color: #16a34a;
+}
+.sc-new {
+  background: var(--border);
+  color: var(--text-muted);
+}
 
 .sets-empty-state {
   display: flex;
