@@ -585,9 +585,9 @@
           <div class="pdf-stat-card mcq">Trắc nghiệm <span id="pdf-stat-mcq">0</span></div>
           <div class="pdf-stat-card match">Ghép cột <span id="pdf-stat-match">0</span></div>
           <div class="pdf-stat-card short">Trả lời ngắn <span id="pdf-stat-short">0</span></div>
-          <div class="pdf-stat-card" style="background:var(--surface);border:1px solid var(--border)">
-            🖼️ Cần ảnh <span id="pdf-stat-needimg" style="color:var(--warning,#f59e0b)">0</span>
-          </div>
+          <button class="pdf-stat-card pdf-stat-needimg-btn" id="pdf-stat-needimg-btn" onclick="toggleNeedImgFilter()" title="Lọc chỉ hiện câu cần ảnh">
+            Cần ảnh <span id="pdf-stat-needimg">0</span>
+          </button>
         </div>
         <div class="pdf-select-row">
           <span class="pdf-select-label">Chọn câu để thêm:</span>

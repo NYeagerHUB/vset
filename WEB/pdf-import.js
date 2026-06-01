@@ -618,6 +618,33 @@ function mergeAnswers(questions, answerMap) {
 // ══════════════════════════════════════════
 let _parsedQuestions = [];  // từ file đề
 let _parsedAnswers   = new Map(); // từ file đáp án
+let _needImgFilterOn = false; // filter chỉ hiện câu cần ảnh
+
+function toggleNeedImgFilter() {
+  _needImgFilterOn = !_needImgFilterOn;
+  const btn = document.getElementById('pdf-stat-needimg-btn');
+  if (btn) btn.classList.toggle('active', _needImgFilterOn);
+
+  const list = document.getElementById('pdf-preview-list');
+  if (!list) return;
+
+  // Ẩn/hiện từng item
+  list.querySelectorAll('.pdf-prev-item').forEach((item, i) => {
+    const q = _parsedQuestions[i];
+    if (!q) return;
+    const needsImg = hasImageRef(q) && !q._image && !q.image;
+    if (_needImgFilterOn) {
+      item.style.display = needsImg ? '' : 'none';
+    } else {
+      item.style.display = '';
+    }
+  });
+
+  // Cập nhật label
+  if (btn) {
+    btn.title = _needImgFilterOn ? 'Đang lọc — click để xem tất cả' : 'Lọc chỉ hiện câu cần ảnh';
+  }
+}
 
 function openPdfImportModal(forSets = false) {
   // Đặt mode trước khi reset UI
@@ -1488,10 +1515,14 @@ function _tryRenderJspdfPreview() {
   renderPdfPreview(_parsedQuestions);
   document.getElementById('pdf-preview-area').classList.remove('hidden');
 
-  // Cập nhật stat "cần ảnh"
+  // ── Cập nhật stat "cần ảnh" ──
   const needImg = _parsedQuestions.filter(q => hasImageRef(q) && !q._image && !q.image).length;
   const el = document.getElementById('pdf-stat-needimg');
   if (el) el.textContent = needImg;
+  // Reset filter khi re-render
+  _needImgFilterOn = false;
+  const btn = document.getElementById('pdf-stat-needimg-btn');
+  if (btn) btn.classList.remove('active');
 }
 
 // ── Override openCropModal để dùng _questionPageMap khi ở mode json-pdf ──
