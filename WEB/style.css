@@ -2223,3 +2223,65 @@ code{background:var(--q-alt-bg);padding:.1rem .35rem;border-radius:3px;font-fami
 }
 .pdf-short-input:focus { outline: none; border-color: var(--accent); }
 .pdf-short-input::placeholder { color: var(--text-muted); }
+
+/* ══════════════════════════════════════════
+   SET ANSWER EDITOR
+══════════════════════════════════════════ */
+.bc-btn-ans { color: var(--accent) !important; border-color: var(--accent) !important; }
+
+.sae-row {
+  border-bottom: 1px solid var(--border);
+  padding: .65rem 0;
+}
+.sae-row:last-child { border-bottom: none; }
+
+.sae-row-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .45rem;
+  flex-wrap: wrap;
+}
+.sae-qnum { font-size: .78rem; font-weight: 700; color: var(--text-muted); min-width: 44px; }
+.sae-qtext { font-size: .78rem; color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* TF */
+.sae-tf-row { display: flex; gap: .6rem; flex-wrap: wrap; }
+.sae-tf-item { display: flex; align-items: center; gap: .25rem; }
+.sae-tf-lbl { font-size: .75rem; color: var(--text-muted); min-width: 16px; }
+
+/* MCQ */
+.sae-mcq-row { display: flex; gap: .35rem; }
+.sae-mcq-btn {
+  width: 34px; height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: all .12s;
+  color: var(--text-muted);
+}
+.sae-mcq-btn:hover { border-color: var(--accent); color: var(--accent); }
+.sae-mcq-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Short */
+.sae-short-input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .3rem .6rem;
+  font-size: .82rem;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  min-width: 160px;
+}
+.sae-short-input:focus { outline: none; border-color: var(--accent); }
+
+/* Matching */
+.sae-match-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.sae-match-item { display: flex; align-items: center; gap: .3rem; }
+.sae-match-num { font-size: .75rem; color: var(--text-muted); }

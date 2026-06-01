@@ -1660,9 +1660,48 @@ function saveConfigFromUI() {
 }
 
 // ══════════════════════════════════════════
-//  HISTORY
+//  HISTORY — Lưu localStorage + Firestore
 // ══════════════════════════════════════════
-function renderHistory() {
+const MAX_ATTEMPTS_PER_SET = 2; // Giới hạn số lần làm mỗi đề
+
+// Lấy lịch sử theo setId từ localStorage
+function getHistoryBySetId(setId) {
+  return loadHistory().filter(h => h.setId === setId);
+}
+
+// Kiểm tra còn lượt làm không
+function canAttemptSet(setId) {
+  if (!setId) return true; // bốc ngẫu nhiên không giới hạn
+  const attempts = getHistoryBySetId(setId);
+  return attempts.length < MAX_ATTEMPTS_PER_SET;
+}
+
+// Lưu history lên Firestore theo user
+async function saveHistoryToFirestore(record) {
+  if (!_db || !_currentUser) return;
+  try {
+    await _db.collection('users').doc(_currentUser.uid)
+      .collection('history').doc(record.id).set(record);
+  } catch(e) { console.warn('[Firestore] saveHistory:', e.message); }
+}
+
+// Load history từ Firestore (merge với localStorage)
+async function loadHistoryFromFirestore() {
+  if (!_db || !_currentUser) return;
+  try {
+    const snap = await _db.collection('users').doc(_currentUser.uid)
+      .collection('history').orderBy('date','desc').limit(200).get();
+    const fbHist = snap.docs.map(d => d.data());
+    // Merge: ưu tiên Firestore, bỏ trùng theo id
+    const local = loadHistory();
+    const merged = [...fbHist];
+    local.forEach(h => { if (!merged.find(x => x.id === h.id)) merged.push(h); });
+    merged.sort((a,b) => new Date(b.date) - new Date(a.date));
+    saveHistory(merged.slice(0, 200));
+    renderHistory();
+    renderSets(); // cập nhật trạng thái đã làm/chưa làm
+  } catch(e) { console.warn('[Firestore] loadHistory:', e.message); }
+}
   const hist = loadHistory();
   const emptyEl = document.getElementById('hist-empty');
   const tbody   = document.getElementById('hist-tbody');
@@ -1791,6 +1830,9 @@ function _renderSetCard(s) {
         <div class="sc-actions" onclick="event.stopPropagation()">
           <button class="bc-btn" onclick="openSetQList('${s.id}')" title="Xem câu hỏi">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+          </button>
+          <button class="bc-btn bc-btn-ans" onclick="openSetAnswerEditor('${s.id}')" title="Điền đáp án">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           <button class="bc-btn" onclick="exportSet('${s.id}')" title="Xuất JSON">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2109,4 +2151,169 @@ function showToast(msg, isError=false) {
   el.className = 'pdf-toast' + (isError?' toast-error':'');
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 4000);
+}
+
+// ══════════════════════════════════════════
+//  SET ANSWER EDITOR — Điền đáp án cho đề
+// ══════════════════════════════════════════
+let _ansEditSetId = null;
+
+async function openSetAnswerEditor(setId) {
+  _ansEditSetId = setId;
+  const s = sets.find(x => x.id === setId);
+  if (!s) return;
+
+  // Đảm bảo có câu hỏi
+  let questions = s.questions;
+  if (!questions || !questions.length) {
+    showToast('⏳ Đang tải câu hỏi...');
+    try { questions = await ensureSetQuestions(setId); } catch(e) { showToast('⚠️ ' + e.message, true); return; }
+  }
+
+  // Tạo modal nếu chưa có
+  let modal = document.getElementById('set-ans-editor-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'set-ans-editor-modal';
+    modal.className = 'modal-overlay hidden';
+    modal.innerHTML = `
+      <div class="modal-box modal-wide" style="max-width:700px">
+        <div class="modal-header">
+          <h3 id="set-ans-editor-title">Điền đáp án</h3>
+          <button class="modal-x-close" onclick="closeSetAnswerEditor()">✕</button>
+        </div>
+        <div class="modal-body sae-body" id="set-ans-editor-body" style="max-height:70vh;overflow-y:auto;padding:.8rem 1rem"></div>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="closeSetAnswerEditor()">Huỷ</button>
+          <button class="modal-confirm" onclick="saveSetAnswers()" style="background:var(--success)">Lưu đáp án</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('set-ans-editor-title').textContent = `Điền đáp án — ${s.name}`;
+
+  const body = document.getElementById('set-ans-editor-body');
+  body.innerHTML = questions.map((q, i) => _renderAnsEditorRow(q, i)).join('');
+
+  modal.classList.remove('hidden');
+}
+
+function _renderAnsEditorRow(q, i) {
+  const qNum = i + 1;
+  const typeLabel = {mcq:'TN', truefalse:'Đ/S', short:'TLN', matching:'Ghép'}[q.type] || q.type;
+
+  let ansHtml = '';
+
+  if (q.type === 'truefalse') {
+    const ans = q.answers || [null,null,null,null];
+    ansHtml = `<div class="sae-tf-row">${['a','b','c','d'].map((lbl, si) => `
+      <div class="sae-tf-item">
+        <span class="sae-tf-lbl">${lbl})</span>
+        <button class="tf-ans-btn ${ans[si]==='D'?'active-d':''}" onclick="saeSetTF(${i},${si},'D')">Đ</button>
+        <button class="tf-ans-btn ${ans[si]==='S'?'active-s':''}" onclick="saeSetTF(${i},${si},'S')">S</button>
+      </div>`).join('')}</div>`;
+
+  } else if (q.type === 'mcq') {
+    const cur = q.answer !== null && q.answer !== undefined ? Number(q.answer) : -1;
+    ansHtml = `<div class="sae-mcq-row">${['A','B','C','D'].map((lbl, oi) =>
+      `<button class="sae-mcq-btn ${cur===oi?'active':''}" onclick="saeSetMCQ(${i},${oi})">${lbl}</button>`
+    ).join('')}</div>`;
+
+  } else if (q.type === 'short') {
+    const cur = q.answer !== null && q.answer !== undefined ? String(q.answer) : '';
+    ansHtml = `<input class="sae-short-input" type="text" value="${escH(cur)}"
+      placeholder="Nhập đáp án..." oninput="saeSetShort(${i},this.value)"/>`;
+
+  } else if (q.type === 'matching') {
+    const ans = q.answers || new Array((q.left||[]).length).fill(null);
+    const rightLabels = ['A','B','C','D','E','F'];
+    ansHtml = `<div class="sae-match-row">${(q.left||[]).map((l, li) =>
+      `<div class="sae-match-item">
+        <span class="sae-match-num">${li+1}.</span>
+        <select class="pdf-match-sel" onchange="saeSetMatch(${i},${li},this.value)">
+          <option value="">?</option>
+          ${(q.right||[]).map((r,ri) =>
+            `<option value="${ri}" ${ans[li]===ri||ans[li]===String(ri)?'selected':''}>${rightLabels[ri]}</option>`
+          ).join('')}
+        </select>
+      </div>`
+    ).join('')}</div>`;
+  }
+
+  const qText = (q.question||'').replace(/\[EMPIRE TEAM\]/gi,'').trim().slice(0,80);
+
+  return `<div class="sae-row" id="sae-row-${i}">
+    <div class="sae-row-header">
+      <span class="sae-qnum">Câu ${qNum}</span>
+      <span class="bank-card-type ${q.type}">${typeLabel}</span>
+      <span class="sae-qtext">${escH(qText)}${qText.length>=80?'…':''}</span>
+    </div>
+    <div class="sae-ans-area">${ansHtml}</div>
+  </div>`;
+}
+
+// Setters — cập nhật trực tiếp vào questions của set
+function _getSaeSet() {
+  return sets.find(x => x.id === _ansEditSetId);
+}
+
+function saeSetTF(qIdx, stmtIdx, val) {
+  const s = _getSaeSet(); if (!s) return;
+  const q = s.questions[qIdx]; if (!q) return;
+  if (!Array.isArray(q.answers)) q.answers = new Array(4).fill(null);
+  q.answers[stmtIdx] = q.answers[stmtIdx] === val ? null : val;
+  // Cập nhật UI
+  const row = document.getElementById(`sae-row-${qIdx}`);
+  if (!row) return;
+  const btns = row.querySelectorAll('.sae-tf-item')[stmtIdx]?.querySelectorAll('.tf-ans-btn');
+  if (btns) {
+    btns[0].classList.toggle('active-d', q.answers[stmtIdx] === 'D');
+    btns[1].classList.toggle('active-s', q.answers[stmtIdx] === 'S');
+  }
+}
+
+function saeSetMCQ(qIdx, optIdx) {
+  const s = _getSaeSet(); if (!s) return;
+  const q = s.questions[qIdx]; if (!q) return;
+  q.answer = q.answer === optIdx ? null : optIdx;
+  const row = document.getElementById(`sae-row-${qIdx}`);
+  if (!row) return;
+  row.querySelectorAll('.sae-mcq-btn').forEach((btn, oi) =>
+    btn.classList.toggle('active', oi === q.answer)
+  );
+}
+
+function saeSetShort(qIdx, val) {
+  const s = _getSaeSet(); if (!s) return;
+  const q = s.questions[qIdx]; if (!q) return;
+  q.answer = val.trim() || null;
+}
+
+function saeSetMatch(qIdx, leftIdx, val) {
+  const s = _getSaeSet(); if (!s) return;
+  const q = s.questions[qIdx]; if (!q) return;
+  if (!Array.isArray(q.answers)) q.answers = new Array((q.left||[]).length).fill(null);
+  q.answers[leftIdx] = val === '' ? null : parseInt(val);
+}
+
+async function saveSetAnswers() {
+  const s = _getSaeSet(); if (!s) return;
+  saveSets();
+  // Lưu lên Firebase nếu có
+  try {
+    if (_db && s.id) {
+      showToast('⏳ Đang lưu...');
+      await saveSetToFirebase(s, () => {});
+    }
+  } catch(e) { console.warn('Firebase save:', e.message); }
+  closeSetAnswerEditor();
+  renderSets();
+  showToast('✅ Đã lưu đáp án');
+}
+
+function closeSetAnswerEditor() {
+  const modal = document.getElementById('set-ans-editor-modal');
+  if (modal) modal.classList.add('hidden');
+  _ansEditSetId = null;
 }
