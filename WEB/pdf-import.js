@@ -388,9 +388,10 @@ function parseShort(qText, lines, startIdx, qNum) {
 // ══════════════════════════════════════════
 /**
  * parseVSATAnswers(rawText) → Map<qNum, answerData>
- * Hỗ trợ 2 format:
- *   1. V-SAT (Empire Team): "Đ Đ S S", "Chọn A", "1–D; 2–C"
- *   2. THPT thử (lời giải chi tiết): "Chọn A", "» Chọn ĐÚNG/SAI", "✓ Trả lời: X"
+ * Hỗ trợ 3 format:
+ *   1. V-SAT thuần: "Đ Đ S S", "Chọn A", "1–D; 2–C"
+ *   2. THPT thử (lời giải): "Chọn A", "» Chọn ĐÚNG/SAI", "✓ Trả lời: X"
+ *   3. V-SAT kèm lời giải (Hóa/Lý): dấu X trong bảng, "→ Đáp án: 1e,2a", "→ Đáp án: 3358"
  */
 function parseVSATAnswers(rawText) {
   const answerMap = new Map();
@@ -401,19 +402,34 @@ function parseVSATAnswers(rawText) {
     .replace(/BỘ ĐỀ ĐÁNH GIÁ NĂNG LỰC V-SAT/gi, '')
     .replace(/BỘ ĐỀ ĐGNL V-SAT[^\n]*/gi, '')
     .replace(/\[EMPIRE TEAM\]/gi, '')
-    .replace(/---\s*PAGE\s*\d+\s*---/gi, '')   // xóa page markers
-    .replace(/Trang\s+\d+\s*/gi, '')            // xóa "Trang X"
-    .replace(/^\s*\d{1,2}\s*$/gm, '')           // xóa số trang đứng riêng
+    .replace(/---\s*PAGE\s*\d+\s*---/gi, '')
+    .replace(/Trang\s+\d+\s*/gi, '')
+    .replace(/^\s*\d{1,2}\s*$/gm, '')
     .replace(/[ \t]+/g, ' ');
 
-  // ── Tách block theo "Câu N" (hỗ trợ cả "» Câu 1." và "Câu 1:") ──
   const blockPattern = /(?:»\s*)?Câu\s+(\d+)[.:)][^\n]*([\s\S]*?)(?=(?:»\s*)?Câu\s+\d+[.:)]|$)/gi;
   let m;
   while ((m = blockPattern.exec(text)) !== null) {
     const qNum  = parseInt(m[1]);
     const block = m[0];
 
-    // ── 1. Matching: "1 – D; 2 – C; 3 – E; 4 – F" ──
+    // ── 1. Matching format mới: "→ Đáp án 1e, 2a, 3c, 4b" ──
+    const matchingArrow = block.match(/→\s*Đáp\s*án\s*:?\s*((?:\d+\s*[a-f]\s*[,;]?\s*){2,})/i);
+    if (matchingArrow) {
+      const mpairs = [...matchingArrow[1].matchAll(/(\d+)\s*([a-f])/gi)];
+      if (mpairs.length >= 2) {
+        const answers = new Array(4).fill(null);
+        mpairs.forEach(p => {
+          const pos = parseInt(p[1]) - 1;
+          const val = p[2].toLowerCase().charCodeAt(0) - 97;
+          if (pos >= 0 && pos < 4) answers[pos] = val;
+        });
+        answerMap.set(qNum, { type: 'matching', answers });
+        continue;
+      }
+    }
+
+    // ── 2. Matching format cũ: "1 – D; 2 – C" ──
     const pairs = [...block.matchAll(/(\d+)\s*[–\-]\s*([A-F])/gi)];
     if (pairs.length >= 2) {
       const answers = new Array(4).fill(null);
@@ -426,101 +442,119 @@ function parseVSATAnswers(rawText) {
       continue;
     }
 
-    // ── 2. TF: "Đ Đ S S" hoặc "ĐĐSS" trên 1 dòng ──
+    // ── 3. TF bảng X: "a. [text] X" hoặc "a. [text]\nX" ──
+    const tfX = _parseTFTableX(block);
+    if (tfX) {
+      answerMap.set(qNum, { type: 'truefalse', answers: tfX });
+      continue;
+    }
+
+    // ── 4. TF: "Đ Đ S S" ──
     const tfMatch = block.match(/(?:^|[\s\n\r:;.,])([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])(?:\s|[.:;,\n\r]|$)/m);
     if (tfMatch) {
-      const answers = [tfMatch[1],tfMatch[2],tfMatch[3],tfMatch[4]]
-        .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
-      answerMap.set(qNum, { type: 'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers: [tfMatch[1],tfMatch[2],tfMatch[3],tfMatch[4]].map(c => c.toUpperCase()==='Đ'?'D':'S') });
       continue;
     }
 
     const tfCompact = block.match(/(?:^|[\s\n\r:;.,])([ĐSđs])([ĐSđs])([ĐSđs])([ĐSđs])(?:\s|[.:;,\n\r]|$)/m);
     if (tfCompact) {
-      const answers = [tfCompact[1],tfCompact[2],tfCompact[3],tfCompact[4]]
-        .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
-      answerMap.set(qNum, { type: 'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers: [tfCompact[1],tfCompact[2],tfCompact[3],tfCompact[4]].map(c => c.toUpperCase()==='Đ'?'D':'S') });
       continue;
     }
 
-    // ── 2b. TF: "Đúng Sai Sai Đúng" (viết đầy đủ — format V-SAT lời giải) ──
+    // ── 5. TF: "Đúng Sai Sai Đúng" ──
     const tfFull = block.match(/(?:^|[\s\n\r])((Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai))(?:\s|[.\n\r]|$)/im);
     if (tfFull) {
-      const answers = [tfFull[2],tfFull[3],tfFull[4],tfFull[5]]
-        .map(c => c.toLowerCase() === 'đúng' ? 'D' : 'S');
-      answerMap.set(qNum, { type: 'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers: [tfFull[2],tfFull[3],tfFull[4],tfFull[5]].map(c => c.toLowerCase()==='đúng'?'D':'S') });
       continue;
     }
 
-    // ── 3. TF format THPT: "» Chọn ĐÚNG/SAI" rải rác ──
+    // ── 6. TF: "» Chọn ĐÚNG/SAI" rải rác ──
     const tfScattered = [...block.matchAll(/(?:»\s*)?Chọn\s+(ĐÚNG|SAI|đúng|sai)\b/gi)];
     if (tfScattered.length >= 2) {
-      const answers = tfScattered.slice(0, 4).map(sm =>
-        sm[1].toUpperCase() === 'ĐÚNG' ? 'D' : 'S'
-      );
+      const answers = tfScattered.slice(0, 4).map(sm => sm[1].toUpperCase()==='ĐÚNG'?'D':'S');
       while (answers.length < 4) answers.push(null);
       answerMap.set(qNum, { type: 'truefalse', answers });
       continue;
     }
 
-    // ── 4. MCQ: "Chọn A" / "Chọn: A" ──
+    // ── 7. MCQ: "→ Đáp án: A" hoặc "Chọn A" ──
+    const mcqArrow = block.match(/→\s*(?:Đáp\s*án|Chọn)\s*:?\s*([A-D])(?:\s|[.:;,\n\r]|$)/i);
+    if (mcqArrow) {
+      answerMap.set(qNum, { type: 'mcq', answer: ['A','B','C','D'].indexOf(mcqArrow[1].toUpperCase()) });
+      continue;
+    }
     const chooseMatch = block.match(/Chọn\s*:?\s*([A-D])(?:\s|[.:;,\n\r]|$)/i);
     if (chooseMatch) {
-      answerMap.set(qNum, {
-        type: 'mcq',
-        answer: ['A','B','C','D'].indexOf(chooseMatch[1].toUpperCase())
-      });
+      answerMap.set(qNum, { type: 'mcq', answer: ['A','B','C','D'].indexOf(chooseMatch[1].toUpperCase()) });
       continue;
     }
 
-    // ── 5. Short: "✓ Trả lời: X" / "Đáp số: X" / "Trả lời: X" ──
+    // ── 8. Short: "→ Đáp án: X" / "✓ Trả lời: X" / "Đáp số: X" ──
     const shortPatterns = [
+      /→\s*Đáp\s*án\s*:?\s*([\d.,/\-]+)/i,
       /[✓✔]\s*Trả\s*lời\s*[:.]\s*([\d.,/\s\-]+)/i,
       /Đáp\s*số\s*[:.]\s*([\d.,/\-]+)/i,
       /Trả\s*lời\s*[:.]\s*([\d.,/\-]+)/i,
-      /=\s*([\d.,/]+)\s*\.?\s*$/m,
     ];
     for (const pat of shortPatterns) {
       const sm = block.match(pat);
       if (sm) {
-        let val = sm[1].trim()
-          .replace(/\s+/g, '')          // bỏ khoảng trắng giữa chữ số
-          .replace(/,(?=\d)/g, '.')     // dấu phẩy thập phân → chấm
-          .replace(/[.\s]+$/, '');      // bỏ dấu chấm cuối
-        if (val) {
-          answerMap.set(qNum, { type: 'short', answer: val });
-          break;
-        }
+        let val = sm[1].trim().replace(/\s+/g,'').replace(/,(?=\d)/g,'.').replace(/[.\s]+$/,'');
+        if (val) { answerMap.set(qNum, { type: 'short', answer: val }); break; }
       }
     }
   }
 
-  // ── FALLBACK: Scan toàn bộ text tìm "Câu N ... Đ Đ S S" ──
-  // Dùng cho V-SAT khi block pattern bị cắt bởi page markers
+  // ── FALLBACK: scan toàn bộ text ──
   const tfFallbackPattern = /(?:»\s*)?Câu\s+(\d+)[^]*?(?<![a-zA-ZĐđSs])([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])(?![a-zA-ZĐđSs])/g;
   let tfm;
   while ((tfm = tfFallbackPattern.exec(text)) !== null) {
     const qNum = parseInt(tfm[1]);
     if (!answerMap.has(qNum)) {
-      const answers = [tfm[2], tfm[3], tfm[4], tfm[5]]
-        .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
-      answerMap.set(qNum, { type: 'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers: [tfm[2],tfm[3],tfm[4],tfm[5]].map(c=>c.toUpperCase()==='Đ'?'D':'S') });
     }
   }
 
-  // ── FALLBACK 2: "Đúng Sai Đúng Sai" viết đầy đủ (V-SAT lời giải) ──
   const tfFullFallback = /(?:»\s*)?Câu\s+(\d+)[^]*?(Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai)\s+(Đúng|Sai)(?:\s|[.\n\r]|$)/gi;
   let tfm2;
   while ((tfm2 = tfFullFallback.exec(text)) !== null) {
     const qNum = parseInt(tfm2[1]);
     if (!answerMap.has(qNum)) {
-      const answers = [tfm2[2], tfm2[3], tfm2[4], tfm2[5]]
-        .map(c => c.toLowerCase() === 'đúng' ? 'D' : 'S');
-      answerMap.set(qNum, { type: 'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers: [tfm2[2],tfm2[3],tfm2[4],tfm2[5]].map(c=>c.toLowerCase()==='đúng'?'D':'S') });
     }
   }
 
   return answerMap;
+}
+
+/**
+ * Parse TF từ bảng có dấu X (format Hóa/Lý V-SAT kèm lời giải)
+ * "a. [text] X" = Đúng, "a. [text]" không có X = Sai
+ */
+function _parseTFTableX(block) {
+  const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+  const stmtMap = {};
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // "a. [text] X" — X ở cuối = Đúng
+    const inlineX = line.match(/^([a-d])[.)]\s+.+\s+X\s*$/i);
+    if (inlineX) { stmtMap[inlineX[1].toLowerCase()] = 'D'; continue; }
+
+    // "a. [text]" — kiểm tra dòng tiếp theo có X không
+    const stmtOnly = line.match(/^([a-d])[.)]\s+(.+)$/i);
+    if (stmtOnly) {
+      const letter = stmtOnly[1].toLowerCase();
+      const next = lines[i + 1] || '';
+      if (/^X\s*$/i.test(next)) { stmtMap[letter] = 'D'; i++; }
+      else { stmtMap[letter] = 'S'; }
+    }
+  }
+
+  const keys = ['a','b','c','d'];
+  if (keys.every(k => stmtMap[k])) return keys.map(k => stmtMap[k]);
+  return null;
 }
 
 /**
@@ -865,25 +899,25 @@ function renderPdfPreview(questions) {
            <input type="file" accept="image/*" style="display:none" onchange="handleManualImageUpload(event,${i})"/>
          </label>`;
 
-    // ── Chi tiết câu hỏi với LaTeX ──
+    // ── Chi tiết câu hỏi với LaTeX + input điền đáp án ──
     let detail = '';
     if (q.type === 'truefalse') {
       detail = `<div class="pdf-prev-stmts">${(q.statements||[]).map((s, si) => {
         const ans = q.answers?.[si];
-        const ansLabel = ans === 'D' ? '<b class="ans-d">Đ</b>'
-                       : ans === 'S' ? '<b class="ans-s">S</b>'
-                       : '<span class="ans-none">?</span>';
         return `<div class="pdf-prev-stmt">
           <span class="pdf-stmt-label">${['a','b','c','d'][si]})</span>
           <span class="pdf-stmt-text">${safeRenderMath(s)}</span>
-          <span class="pdf-stmt-ans">${ansLabel}</span>
+          <span class="pdf-stmt-ans-wrap">
+            <button class="tf-ans-btn ${ans==='D'?'active-d':''}" onclick="setPrevTFAnswer(${i},${si},'D')">Đ</button>
+            <button class="tf-ans-btn ${ans==='S'?'active-s':''}" onclick="setPrevTFAnswer(${i},${si},'S')">S</button>
+          </span>
         </div>`;
       }).join('')}</div>`;
 
     } else if (q.type === 'mcq') {
       detail = `<div class="pdf-prev-opts">${(q.options||[]).map((o, oi) => {
         const isAns = q.answer !== null && q.answer !== undefined && Number(q.answer) === oi;
-        return `<div class="pdf-prev-opt ${isAns ? 'opt-correct' : ''}">
+        return `<div class="pdf-prev-opt ${isAns ? 'opt-correct' : ''}" onclick="setPrevMCQAnswer(${i},${oi})" style="cursor:pointer">
           <span class="pdf-opt-label">${['A','B','C','D'][oi]}.</span>
           ${safeRenderMath(o)}
           ${isAns ? '<span class="opt-check">✓</span>' : ''}
@@ -894,11 +928,15 @@ function renderPdfPreview(questions) {
       detail = `<div class="pdf-prev-match">
         ${(q.left||[]).map((l, li) => {
           const ans = q.answers?.[li];
-          const ansLabel = (ans !== null && ans !== undefined)
-            ? `→ <b>${['A','B','C','D','E','F'][ans]}</b>` : '→ ?';
+          const rightLabels = ['A','B','C','D','E','F'];
           return `<div class="pdf-match-row">
             <span class="pdf-match-left">${li+1}. ${safeRenderMath(l)}</span>
-            <span class="pdf-match-ans">${ansLabel}</span>
+            <select class="pdf-match-sel" onchange="setPrevMatchAnswer(${i},${li},this.value)">
+              <option value="">?</option>
+              ${(q.right||[]).map((r,ri) =>
+                `<option value="${ri}" ${ans===ri||ans===String(ri)?'selected':''}>${rightLabels[ri]}</option>`
+              ).join('')}
+            </select>
           </div>`;
         }).join('')}
         ${q.right?.length ? `<div class="pdf-match-right-list">${q.right.map((r,ri) =>
@@ -907,10 +945,13 @@ function renderPdfPreview(questions) {
       </div>`;
 
     } else if (q.type === 'short') {
-      const ansVal = (q.answer !== null && q.answer !== undefined && String(q.answer).trim())
-        ? `<b class="ans-d">${escH(String(q.answer))}</b>`
-        : '<span class="ans-none">? (chưa đọc được)</span>';
-      detail = `<div class="pdf-prev-short">Đáp số: ${ansVal}</div>`;
+      const curVal = (q.answer !== null && q.answer !== undefined) ? String(q.answer) : '';
+      detail = `<div class="pdf-prev-short">
+        <span class="pdf-short-label">Đáp số:</span>
+        <input class="pdf-short-input" type="text" value="${escH(curVal)}"
+          placeholder="Nhập đáp án..."
+          oninput="setPrevShortAnswer(${i}, this.value)"/>
+      </div>`;
     }
 
     // Ảnh đã crop/upload
@@ -1614,3 +1655,72 @@ document.addEventListener('DOMContentLoaded', () => {
   initImportModeTabs();
   initJspdfMode();
 });
+
+// ══════════════════════════════════════════
+//  INLINE ANSWER EDITING trong preview
+// ══════════════════════════════════════════
+
+// TF: toggle Đ/S cho từng mệnh đề
+function setPrevTFAnswer(qIdx, stmtIdx, val) {
+  const q = _parsedQuestions[qIdx];
+  if (!q) return;
+  if (!Array.isArray(q.answers)) q.answers = new Array((q.statements||[]).length).fill(null);
+  // Toggle: nếu đang chọn rồi thì bỏ chọn
+  q.answers[stmtIdx] = q.answers[stmtIdx] === val ? null : val;
+
+  // Cập nhật UI chỉ phần đó, không re-render toàn bộ
+  const stmts = document.querySelectorAll(`#pdf-prev-item-${qIdx} .pdf-prev-stmt`);
+  if (stmts[stmtIdx]) {
+    const wrap = stmts[stmtIdx].querySelector('.pdf-stmt-ans-wrap');
+    if (wrap) {
+      wrap.querySelectorAll('.tf-ans-btn').forEach(btn => {
+        btn.classList.remove('active-d','active-s');
+        if (btn.textContent === 'Đ' && q.answers[stmtIdx] === 'D') btn.classList.add('active-d');
+        if (btn.textContent === 'S' && q.answers[stmtIdx] === 'S') btn.classList.add('active-s');
+      });
+    }
+  }
+  _updateNeedImgStat();
+}
+
+// MCQ: chọn đáp án bằng click vào option
+function setPrevMCQAnswer(qIdx, optIdx) {
+  const q = _parsedQuestions[qIdx];
+  if (!q) return;
+  q.answer = q.answer === optIdx ? null : optIdx; // toggle
+
+  // Cập nhật UI
+  const opts = document.querySelectorAll(`#pdf-prev-item-${qIdx} .pdf-prev-opt`);
+  opts.forEach((el, oi) => {
+    el.classList.toggle('opt-correct', oi === q.answer);
+    const check = el.querySelector('.opt-check');
+    if (check) check.remove();
+    if (oi === q.answer) {
+      const span = document.createElement('span');
+      span.className = 'opt-check';
+      span.textContent = '✓';
+      el.appendChild(span);
+    }
+  });
+}
+
+// Matching: chọn đáp án từ select
+function setPrevMatchAnswer(qIdx, leftIdx, val) {
+  const q = _parsedQuestions[qIdx];
+  if (!q) return;
+  if (!Array.isArray(q.answers)) q.answers = new Array((q.left||[]).length).fill(null);
+  q.answers[leftIdx] = val === '' ? null : parseInt(val);
+}
+
+// Short: nhập đáp án
+function setPrevShortAnswer(qIdx, val) {
+  const q = _parsedQuestions[qIdx];
+  if (!q) return;
+  q.answer = val.trim() || null;
+}
+
+function _updateNeedImgStat() {
+  const needImg = _parsedQuestions.filter(q => hasImageRef(q) && !q._image && !q.image).length;
+  const el = document.getElementById('pdf-stat-needimg');
+  if (el) el.textContent = needImg;
+}
