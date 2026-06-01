@@ -388,18 +388,13 @@ function parseShort(qText, lines, startIdx, qNum) {
 // ══════════════════════════════════════════
 /**
  * parseVSATAnswers(rawText) → Map<qNum, answerData>
- *
- * Scan toàn bộ text, không phụ thuộc vào cấu trúc dòng của PDF.js.
- * Dùng regex trên toàn bộ chuỗi để tìm đáp án theo từng loại.
- *
- * FIX v2.1: Không dùng \b cho ký tự tiếng Việt (Đ) vì JS coi Đ là non-word char.
- *           Tự động detect loại câu thay vì hardcode range.
- *           Thêm fallback "Chọn ĐÚNG/SAI" cho TF.
+ * Hỗ trợ 2 format:
+ *   1. V-SAT (Empire Team): "Đ Đ S S", "Chọn A", "1–D; 2–C"
+ *   2. THPT thử (lời giải chi tiết): "Chọn A", "» Chọn ĐÚNG/SAI", "✓ Trả lời: X"
  */
 function parseVSATAnswers(rawText) {
   const answerMap = new Map();
 
-  // Chuẩn hóa nhẹ — giữ lại nội dung đáp án
   const text = rawText
     .replace(/HỆ THỐNG GIÁO DỤC EMPIRE TEAM/gi, '')
     .replace(/CHINH PHỤC MỌI MIỀN KIẾN THỨC/gi, '')
@@ -407,14 +402,14 @@ function parseVSATAnswers(rawText) {
     .replace(/\[EMPIRE TEAM\]/gi, '')
     .replace(/[ \t]+/g, ' ');
 
-  // ── Tách thành các block theo "Câu N:" ──
-  const blockPattern = /Câu\s+(\d+)\s*[:.][^\n]*([\s\S]*?)(?=Câu\s+\d+\s*[:.:]|$)/gi;
+  // ── Tách block theo "Câu N" (hỗ trợ cả "» Câu 1." và "Câu 1:") ──
+  const blockPattern = /(?:»\s*)?Câu\s+(\d+)[.:)][^\n]*([\s\S]*?)(?=(?:»\s*)?Câu\s+\d+[.:)]|$)/gi;
   let m;
   while ((m = blockPattern.exec(text)) !== null) {
-    const qNum   = parseInt(m[1]);
-    const block  = m[0];
+    const qNum  = parseInt(m[1]);
+    const block = m[0];
 
-    // ── 1. Thử Matching: "1 – D; 2 – C; 3 – E; 4 – F" ──
+    // ── 1. Matching: "1 – D; 2 – C; 3 – E; 4 – F" ──
     const pairs = [...block.matchAll(/(\d+)\s*[–\-]\s*([A-F])/gi)];
     if (pairs.length >= 2) {
       const answers = new Array(4).fill(null);
@@ -423,62 +418,66 @@ function parseVSATAnswers(rawText) {
         const val = p[2].toUpperCase().charCodeAt(0) - 65;
         if (idx >= 0 && idx < 4) answers[idx] = val;
       });
-      answerMap.set(qNum, { type:'matching', answers });
+      answerMap.set(qNum, { type: 'matching', answers });
       continue;
     }
 
-    // ── 2. Thử TF: pattern "Đ Đ S S" hoặc "ĐĐSS" trên 1 dòng ──
-    // FIX: Không dùng \b — dùng lookbehind/lookahead cho Unicode-safe boundary
-    // (?:^|[^a-zA-Z0-9_ĐđSs]) = trước ký tự đầu không phải chữ cái liên quan
+    // ── 2. TF: "Đ Đ S S" hoặc "ĐĐSS" trên 1 dòng ──
     const tfMatch = block.match(/(?:^|[\s\n\r:;.,])([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])\s+([ĐSđs])(?:\s|[.:;,\n\r]|$)/m);
     if (tfMatch) {
       const answers = [tfMatch[1],tfMatch[2],tfMatch[3],tfMatch[4]]
         .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
-      answerMap.set(qNum, { type:'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers });
       continue;
     }
 
-    // ── 2b. TF fallback: không có khoảng trắng giữa "ĐĐSS" ──
     const tfCompact = block.match(/(?:^|[\s\n\r:;.,])([ĐSđs])([ĐSđs])([ĐSđs])([ĐSđs])(?:\s|[.:;,\n\r]|$)/m);
     if (tfCompact) {
       const answers = [tfCompact[1],tfCompact[2],tfCompact[3],tfCompact[4]]
         .map(c => c.toUpperCase() === 'Đ' ? 'D' : 'S');
-      answerMap.set(qNum, { type:'truefalse', answers });
+      answerMap.set(qNum, { type: 'truefalse', answers });
       continue;
     }
 
-    // ── 2c. TF fallback: "» Chọn ĐÚNG" / "» Chọn SAI" rải rác trong block ──
+    // ── 3. TF format THPT: "» Chọn ĐÚNG/SAI" rải rác ──
     const tfScattered = [...block.matchAll(/(?:»\s*)?Chọn\s+(ĐÚNG|SAI|đúng|sai)\b/gi)];
-    if (tfScattered.length === 4) {
-      const answers = tfScattered.map(sm =>
-        sm[1].toUpperCase() === 'ĐÚNG' ? 'D' : 'S');
-      answerMap.set(qNum, { type:'truefalse', answers });
+    if (tfScattered.length >= 2) {
+      // Lấy tối đa 4 kết quả
+      const answers = tfScattered.slice(0, 4).map(sm =>
+        sm[1].toUpperCase() === 'ĐÚNG' ? 'D' : 'S'
+      );
+      // Pad đến 4 nếu thiếu
+      while (answers.length < 4) answers.push(null);
+      answerMap.set(qNum, { type: 'truefalse', answers });
       continue;
     }
 
-    // ── 3. Thử MCQ: "Chọn A" (nhưng không phải "Chọn ĐÚNG/SAI") ──
-    const chooseMatch = block.match(/Chọn\s+([A-D])(?:\s|[.:;,\n\r]|$)/i);
+    // ── 4. MCQ: "Chọn A" / "Chọn: A" ──
+    const chooseMatch = block.match(/Chọn\s*:?\s*([A-D])(?:\s|[.:;,\n\r]|$)/i);
     if (chooseMatch) {
-      answerMap.set(qNum, { type:'mcq', answer: ['A','B','C','D'].indexOf(chooseMatch[1].toUpperCase()) });
+      answerMap.set(qNum, {
+        type: 'mcq',
+        answer: ['A','B','C','D'].indexOf(chooseMatch[1].toUpperCase())
+      });
       continue;
     }
 
-    // ── 4. Thử Short: "Đáp số: X" / "Trả lời: X" / "✓ Trả lời: X" ──
+    // ── 5. Short: "✓ Trả lời: X" / "Đáp số: X" / "Trả lời: X" ──
     const shortPatterns = [
-      /Đáp\s*số\s*[:.]\s*([\d.,/\-]+)/i,
       /[✓✔]\s*Trả\s*lời\s*[:.]\s*([\d.,/\s\-]+)/i,
+      /Đáp\s*số\s*[:.]\s*([\d.,/\-]+)/i,
       /Trả\s*lời\s*[:.]\s*([\d.,/\-]+)/i,
       /=\s*([\d.,/]+)\s*\.?\s*$/m,
     ];
     for (const pat of shortPatterns) {
       const sm = block.match(pat);
       if (sm) {
-        // Chuẩn hóa: dấu phẩy thập phân → dấu chấm, bỏ trailing dot/space
         let val = sm[1].trim()
-          .replace(/,(?=\d)/g, '.')
-          .replace(/[.\s]+$/, '');  // bỏ dấu chấm cuối
+          .replace(/\s+/g, '')          // bỏ khoảng trắng giữa chữ số
+          .replace(/,(?=\d)/g, '.')     // dấu phẩy thập phân → chấm
+          .replace(/[.\s]+$/, '');      // bỏ dấu chấm cuối
         if (val) {
-          answerMap.set(qNum, { type:'short', answer: val });
+          answerMap.set(qNum, { type: 'short', answer: val });
           break;
         }
       }
