@@ -14,13 +14,15 @@ import {
   Code,
   Settings2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Edit2 as EditIcon
 } from 'lucide-react';
 import { InlineMath, BlockMath } from 'react-katex';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { digitizePdfStream, type DigitizeOptions } from './services/gemini';
 import { GraphVisualizer } from './components/GraphVisualizer';
+import { QuestionEditor } from './components/QuestionEditor';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -189,7 +191,7 @@ export default function App() {
   const [rawText, setRawText] = useState<string>('');
   const [error, setError] = useState<{ message: string; code?: string; link?: string } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<'json' | 'preview' | 'raw'>('json');
+  const [viewMode, setViewMode] = useState<'json' | 'preview' | 'raw' | 'editor'>('json');
   const [showSettings, setShowSettings] = useState(false);
   const [allowedTypes, setAllowedTypes] = useState<string[]>(['mcq', 'truefalse', 'short', 'matching']);
   const [customInstructions, setCustomInstructions] = useState('');
@@ -322,6 +324,7 @@ export default function App() {
       clearInterval(progressInterval);
       setProgress(100);
       setStatusText('Hoàn tất!');
+      setViewMode('editor');
     } catch (err: any) {
       clearInterval(progressInterval);
       console.error(err);
@@ -724,6 +727,16 @@ export default function App() {
                       <AlertCircle className="w-3.5 h-3.5" />
                       Raw
                     </button>
+                    <button
+                      onClick={() => setViewMode('editor')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5",
+                        viewMode === 'editor' ? "bg-white shadow-sm text-indigo-600" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      <EditIcon className="w-3.5 h-3.5" />
+                      Editor
+                    </button>
                   </div>
                 </div>
                 {result && (
@@ -749,7 +762,16 @@ export default function App() {
               </div>
 
               <div className="flex-1 bg-gray-900 rounded-2xl p-4 overflow-auto font-mono text-sm relative group">
-                {viewMode === 'raw' ? (
+                {viewMode === 'editor' && result ? (
+                  <div className="h-full w-full overflow-hidden rounded-2xl">
+                    <QuestionEditor 
+                      initialData={result}
+                      onSave={(data) => {
+                        setResult(data);
+                      }}
+                    />
+                  </div>
+                ) : viewMode === 'raw' ? (
                   rawText ? (
                     <pre className="text-indigo-300 whitespace-pre-wrap">
                       {rawText}
