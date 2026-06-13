@@ -1169,12 +1169,15 @@ function renderScore() {
 }
 
 function toggleAnswerDisplay() {
+  if (!examData) return;
   const panel = document.getElementById('answer-display-panel');
   const hide  = panel.classList.toggle('hidden');
+  document.getElementById('btn-show-answers').textContent = hide ? 'Hiện đáp án' : 'Ẩn đáp án';
   document.getElementById('btn-show-answers').classList.toggle('active-toggle', !hide);
   if (!hide) renderAnswerDisplay();
 }
 function renderAnswerDisplay() {
+  if (!examData || !examData.questions) return;
   document.getElementById('adp-body').innerHTML = examData.questions.map((q,i) => {
     const k = answerKey[i];
     let keyText = '';

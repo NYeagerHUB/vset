@@ -53,6 +53,7 @@
       <nav class="dash-nav">
         <button class="dnav active" data-panel="panel-sets">Kho đề</button>
         <button class="dnav" data-panel="panel-bank">Ngân hàng</button>
+        <button class="dnav dnav-editor" data-panel="panel-editor">✏️ Soạn đề</button>
         <button class="dnav" data-panel="panel-config">Cấu hình</button>
         <button class="dnav" data-panel="panel-history">Lịch sử</button>
         <button class="dnav dnav-admin hidden" data-panel="panel-admin" id="dnav-admin">👁 Online</button>
@@ -156,6 +157,97 @@
           <div class="bes-sub">Nhấn <b>Nhập PDF</b> hoặc <b>Nhập JSON</b> để thêm câu hỏi.</div>
         </div>
         <div class="bank-list-grid" id="bank-list"></div>
+      </div>
+
+      <!-- ── PANEL: EDITOR ── -->
+      <div class="dash-panel" id="panel-editor">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">✏️ Soạn thảo đề thi</h2>
+            <p class="panel-sub">Tạo và chỉnh sửa đề thi theo từng câu hỏi. Hỗ trợ tất cả loại câu. Lưu trực tiếp vào kho đề.</p>
+          </div>
+          <div class="panel-header-actions">
+            <button class="ph-btn" id="editor-new-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Đề mới
+            </button>
+            <button class="ph-btn ph-import" id="editor-import-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Nhập JSON
+            </button>
+            <input type="file" id="editor-import-file" accept=".json" hidden/>
+            <button class="ph-btn ph-export" id="editor-export-btn">Xuất JSON</button>
+            <button class="ph-btn" id="editor-preview-btn">👁 Preview</button>
+            <button class="ph-btn" style="background:var(--success);color:#fff;border-color:var(--success)" id="editor-save-set-btn">💾 Lưu vào kho đề</button>
+          </div>
+        </div>
+
+        <!-- Thông tin đề -->
+        <div class="editor-meta-bar" id="editor-meta-bar">
+          <div class="editor-meta-group">
+            <label class="editor-meta-label">Tên đề</label>
+            <input class="editor-meta-input" id="editor-title" placeholder="VD: Đề số 1 – Vật Lý..." maxlength="100"/>
+          </div>
+          <div class="editor-meta-group">
+            <label class="editor-meta-label">Môn học</label>
+            <select class="editor-meta-select" id="editor-subject">
+              <option value="Toán">Toán</option>
+              <option value="Ngữ Văn">Ngữ Văn</option>
+              <option value="Vật Lý">Vật Lý</option>
+              <option value="Hóa Học">Hóa Học</option>
+              <option value="Sinh Học">Sinh Học</option>
+              <option value="Lịch Sử">Lịch Sử</option>
+              <option value="Địa Lý">Địa Lý</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+          <div class="editor-meta-group">
+            <label class="editor-meta-label">Thời gian (phút)</label>
+            <input class="editor-meta-input" id="editor-time" type="number" min="5" max="300" value="90" style="width:90px"/>
+          </div>
+          <div class="editor-meta-group" style="margin-left:auto;align-items:flex-end">
+            <span class="editor-draft-status" id="editor-draft-status">📝 Nháp tự động</span>
+          </div>
+        </div>
+
+        <!-- Main layout 3 cột -->
+        <div class="editor-layout">
+          <!-- Cột trái: danh sách câu hỏi -->
+          <div class="editor-sidebar">
+            <div class="editor-sidebar-header">
+              <span id="editor-q-count">0 câu</span>
+              <button class="editor-add-btn" id="editor-add-q-btn">+ Thêm câu</button>
+            </div>
+            <!-- Nhanh thêm theo loại -->
+            <div class="editor-quick-add">
+              <button class="editor-qa-btn mcq" onclick="editorAddQuestion('mcq')" title="Trắc nghiệm 1 đáp án">TN</button>
+              <button class="editor-qa-btn truefalse" onclick="editorAddQuestion('truefalse')" title="Đúng/Sai">Đ/S</button>
+              <button class="editor-qa-btn short" onclick="editorAddQuestion('short')" title="Trả lời ngắn">TLN</button>
+              <button class="editor-qa-btn matching" onclick="editorAddQuestion('matching')" title="Ghép cột">Ghép</button>
+              <button class="editor-qa-btn essay" onclick="editorAddQuestion('essay')" title="Tự luận">TL</button>
+            </div>
+            <div class="editor-q-list" id="editor-q-list">
+              <div class="editor-empty-hint">Nhấn <b>+ Thêm câu</b> để bắt đầu soạn đề</div>
+            </div>
+          </div>
+
+          <!-- Cột giữa: form chỉnh sửa câu hỏi -->
+          <div class="editor-main" id="editor-main">
+            <div class="editor-placeholder">
+              <div class="editor-placeholder-icon">✏️</div>
+              <div class="editor-placeholder-title">Chọn câu hỏi để chỉnh sửa</div>
+              <div class="editor-placeholder-sub">Hoặc nhấn <b>+ Thêm câu</b> để tạo câu hỏi mới</div>
+            </div>
+          </div>
+
+          <!-- Cột phải: thuộc tính câu hỏi -->
+          <div class="editor-props" id="editor-props">
+            <div class="editor-props-header">Thuộc tính</div>
+            <div class="editor-props-body" id="editor-props-body">
+              <div style="color:var(--text-muted);font-size:.8rem;padding:.5rem">Chọn câu hỏi để xem thuộc tính</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ── PANEL: CONFIG ── -->
@@ -641,5 +733,6 @@
 <script src="exam.js"></script>
 <script src="pdf-import.js"></script>
 <script src="gemini-import.js"></script>
+<script src="exam-editor.js"></script>
 </body>
 </html>
