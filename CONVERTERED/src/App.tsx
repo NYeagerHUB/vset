@@ -21,11 +21,14 @@ import {
   X,
   ArrowUpRight,
   Cloud,
-  CloudOff
+  CloudOff,
+  LogOut,
+  User
 } from 'lucide-react';
 import { InlineMath, BlockMath } from 'react-katex';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { GoogleLogin, googleLogout, useGoogleLogin } from '@react-oauth/google';
 import { digitizePdfStream, type DigitizeOptions } from './services/gemini';
 import { GraphVisualizer } from './components/GraphVisualizer';
 import { QuestionEditor } from './components/QuestionEditor';
@@ -223,6 +226,11 @@ export default function App() {
     },
   ]);
   const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
+  const [user, setUser] = useState<{
+    name?: string;
+    email?: string;
+    picture?: string;
+  } | null>(null);
 
   // Load history from localStorage
   React.useEffect(() => {
@@ -449,6 +457,42 @@ export default function App() {
     }
   };
 
+  const handleLoginSuccess = async (response: any) => {
+    try {
+      // Get user info from Google
+      const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${response.access_token}` },
+      }).then(res => res.json());
+
+      setUser({
+        name: userInfo.name,
+        email: userInfo.email,
+        picture: userInfo.picture,
+      });
+      addNotification({
+        type: 'success',
+        title: 'Đăng nhập thành công!',
+        message: `Xin chào, ${userInfo.name}!`,
+      });
+    } catch (err) {
+      addNotification({
+        type: 'error',
+        title: 'Đăng nhập lỗi',
+        message: 'Có lỗi xảy ra khi đăng nhập.',
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    googleLogout();
+    setUser(null);
+    addNotification({
+      type: 'info',
+      title: 'Đăng xuất',
+      message: 'Đã đăng xuất khỏi tài khoản Google.',
+    });
+  };
+
   const toggleType = (typeId: string) => {
     setAllowedTypes(prev => 
       prev.includes(typeId) 
@@ -472,6 +516,47 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Google Login */}
+          {!user ? (
+            <div className="flex items-center">
+              <GoogleLogin
+                onSuccess={handleLoginSuccess}
+                onError={() => {
+                  addNotification({
+                    type: 'error',
+                    title: 'Đăng nhập lỗi',
+                    message: 'Có lỗi xảy ra khi đăng nhập Google.',
+                  });
+                }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold text-gray-900">{user.name}</p>
+                <p className="text-[10px] text-gray-500">{user.email}</p>
+              </div>
+              {user.picture ? (
+                <img
+                  src={user.picture}
+                  alt={user.name}
+                  className="w-9 h-9 rounded-full border border-gray-200"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center border border-gray-300">
+                  <User className="w-4 h-4 text-gray-500" />
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-all"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          )}
+
           {/* Deploy Button */}
           <button
             onClick={triggerDeploy}
