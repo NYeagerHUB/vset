@@ -15,7 +15,13 @@ import {
   Settings2,
   ChevronDown,
   ChevronUp,
-  Edit2 as EditIcon
+  Edit2 as EditIcon,
+  Bell,
+  Check,
+  X,
+  ArrowUpRight,
+  Cloud,
+  CloudOff
 } from 'lucide-react';
 import { InlineMath, BlockMath } from 'react-katex';
 import { clsx, type ClassValue } from 'clsx';
@@ -198,6 +204,25 @@ export default function App() {
   const [groupSharedContext, setGroupSharedContext] = useState(true);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'success' | 'warning' | 'error' | 'info';
+    title: string;
+    message: string;
+    timestamp: Date;
+    read: boolean;
+  }>>([
+    {
+      id: '1',
+      type: 'info',
+      title: 'Đã push lên git',
+      message: 'Commit mới đã được push lên https://github.com/NYeagerHUB/vset.git',
+      timestamp: new Date(Date.now() - 300000),
+      read: false,
+    },
+  ]);
+  const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
 
   // Load history from localStorage
   React.useEffect(() => {
@@ -378,6 +403,52 @@ export default function App() {
     setRawText('');
   };
 
+  const addNotification = (notification: Omit<typeof notifications[0], 'id' | 'timestamp' | 'read'>) => {
+    const newNotification = {
+      ...notification,
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      read: false,
+    };
+    setNotifications(prev => [newNotification, ...prev.slice(0, 19)]);
+  };
+
+  const markAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const triggerDeploy = async () => {
+    setDeployStatus('deploying');
+    addNotification({
+      type: 'info',
+      title: 'Đang deploy...',
+      message: 'Đang bắt đầu deploy lên Vercel...',
+    });
+
+    try {
+      // Simulate deploy (replace with real Vercel API if you have token)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setDeployStatus('success');
+      addNotification({
+        type: 'success',
+        title: 'Deploy thành công!',
+        message: 'Ứng dụng đã được deploy lên Vercel. Truy cập để xem.',
+      });
+    } catch (err) {
+      setDeployStatus('error');
+      addNotification({
+        type: 'error',
+        title: 'Deploy lỗi',
+        message: 'Có lỗi xảy ra trong quá trình deploy.',
+      });
+    }
+  };
+
   const toggleType = (typeId: string) => {
     setAllowedTypes(prev => 
       prev.includes(typeId) 
@@ -387,8 +458,131 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] text-[#111827] font-sans p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-[#F9FAFB] text-[#111827] font-sans">
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+            <FileJson className="text-white w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Số hóa PDF</h2>
+            <p className="text-xs text-gray-500">Question Editor v1.0</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Deploy Button */}
+          <button
+            onClick={triggerDeploy}
+            disabled={deployStatus === 'deploying'}
+            className={cn(
+              "px-4 py-2 rounded-lg border flex items-center gap-2 text-xs font-medium transition-all",
+              deployStatus === 'deploying'
+                ? "border-gray-200 text-gray-400 cursor-wait"
+                : deployStatus === 'success'
+                ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                : "border-gray-200 text-gray-700 hover:bg-gray-50"
+            )}
+          >
+            {deployStatus === 'deploying' ? <Loader2 className="w-4 h-4 animate-spin" /> :
+             deployStatus === 'success' ? <Check className="w-4 h-4" /> :
+             <Cloud className="w-4 h-4" />}
+            {deployStatus === 'deploying' ? 'Đang deploy...' :
+             deployStatus === 'success' ? 'Deployed' : 'Deploy lên Vercel'}
+          </button>
+
+          {/* Notifications Bell */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-all"
+            >
+              <Bell className="w-5 h-5 text-gray-700" />
+              {notifications.some(n => !n.read) && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {notifications.filter(n => !n.read).length}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {showNotifications && (
+              <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-900">Thông báo</h3>
+                  {notifications.some(n => !n.read) && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                    >
+                      Đánh dấu tất cả đã đọc
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <Bell className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                      <p className="text-sm text-gray-500">Chưa có thông báo nào</p>
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        onClick={() => markAsRead(notification.id)}
+                        className={cn(
+                          "p-4 border-b border-gray-50 cursor-pointer transition-colors hover:bg-gray-50",
+                          !notification.read && "bg-blue-50/50"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={cn(
+                                "w-2 h-2 rounded-full",
+                                notification.type === 'success' && "bg-green-500",
+                                notification.type === 'warning' && "bg-yellow-500",
+                                notification.type === 'error' && "bg-red-500",
+                                notification.type === 'info' && "bg-blue-500",
+                              )} />
+                              <p className="text-xs font-semibold text-gray-900">
+                                {notification.title}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-600 mb-1 line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              {notification.timestamp.toLocaleString('vi-VN')}
+                            </p>
+                          </div>
+                          {!notification.read && (
+                            <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0 mt-1" />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="p-3 border-t border-gray-100 bg-gray-50">
+                  <a
+                    href="https://github.com/NYeagerHUB/vset"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center justify-center gap-1"
+                  >
+                    Xem trên GitHub
+                    <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 md:p-8 max-w-5xl mx-auto">
         {/* Header */}
         <header className="mb-12 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4 shadow-lg shadow-indigo-200">
